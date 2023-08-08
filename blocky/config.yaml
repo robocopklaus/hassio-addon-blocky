@@ -13,6 +13,7 @@ arch:
   - i386
 init: false
 startup: system
+image: "ghcr.io/robocopklaus/{arch}-addon-blocky"
 ports:
   53/udp: 53
   53/tcp: 53
@@ -58,4 +59,3 @@ schema:
     - client: str
       groups:
         - str
-  # image: "ghcr.io/robocopklaus/{arch}-addon-blocky"
