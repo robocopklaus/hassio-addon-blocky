@@ -1,0 +1,61 @@
+---
+# https://developers.home-assistant.io/docs/add-ons/configuration#add-on-config
+name: Blocky
+version: "0.21"
+slug: blocky
+description: Fast and lightweight DNS proxy as ad-blocker for local network with many features
+url: "https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky"
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+init: false
+startup: system
+ports:
+  53/udp: 53
+  53/tcp: 53
+options:
+  router: null
+  defaultUpstreamResolvers:
+    - tcp-tls:one.one.one.one
+    - tcp-tls:dns.google
+    - https://cloudflare-dns.com/dns-query
+  bootstrapDns:
+    - upstream: tcp+udp:1.1.1.1
+    - upstream: https://1.1.1.1/dns-query
+    - upstream: https://dns.digitale-gesellschaft.ch/dns-query
+      ips:
+        - 185.95.218.42
+  conditionalMapping: []
+
+  blackLists:
+    - group: ads
+      entries:
+        - https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
+        - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+  clientGroupsBlock:
+    - client: default
+      groups:
+        - ads
+schema:
+  router: str
+  defaultUpstreamResolvers:
+    - str
+  bootstrapDns:
+    - upstream: str?
+      ips:
+        - str?
+  conditionalMapping:
+    - domain: str
+      ip: str
+  blackLists:
+    - group: str
+      entries:
+        - str
+  clientGroupsBlock:
+    - client: str
+      groups:
+        - str
+  # image: "ghcr.io/home-assistant/{arch}-addon-example"

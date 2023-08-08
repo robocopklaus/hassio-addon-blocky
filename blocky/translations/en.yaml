@@ -1,0 +1,45 @@
+---
+configuration:
+  router:
+    name: Your router's IP address
+    description: >-
+      Blocky uses rDNS to retrieve the names for the clients. To use this feature, you can configure a DNS server for client lookup (typically your router).
+  defaultUpstreamResolvers:
+    name: Default DNS resolvers
+    description: >-
+      To resolve a DNS query, Blocky needs external public or private DNS resolvers. Blocky supports DNS resolvers with following network protocols (net part of the resolver URL): tcp+udp (UDP and TCP, dependent on query type), https (aka DoH) and tcp-tls (aka DoT)
+
+  bootstrapDns:
+    name: DNS servers to resolve blacklist urls and upstream DNS servers
+    description: >-
+      These DNS servers are used to resolve upstream DoH and DoT servers that are specified as host names, and list domains. It is useful if no system DNS resolver is configured, and/or to encrypt the bootstrap queries.
+
+      When using an upstream specified by IP, and not by hostname, you can write only the upstream and skip ips
+
+  conditionalMapping:
+    name: List of domains and IPs that will get replaced in the query before resolver lookup
+    description: >-
+      You can define, which DNS resolver(s) should be used for queries for the particular domain (with all subdomains). This is for example useful, if you want to reach devices in your local network by the name. Since only your router know which hostname belongs to which IP address, all DNS queries for the local network should be redirected to the router.
+
+  blackLists:
+    name: Definition of blacklist groups with external links (http/https)
+    description: >-
+      Blocky can download and use external lists with domains or IP addresses to block DNS query (e.g. advertisement, malware, trackers, adult sites). You can group several list sources together and define the blocking behavior per client. External blacklists must be either in the well-known Hosts format or just a plain domain list (one domain per line). Blocky also supports regex as more powerful tool to define patterns to block.
+
+      Blocky uses DNS sinkhole approach to block a DNS query. Domain name from the request, IP address from the response, and the CNAME record will be checked against configured blacklists.
+
+      To avoid over-blocking, you can define or use already existing whitelists.
+
+  clientGroupsBlock:
+    name: Define which blocking group(s) should be used for which client in your network
+    description: >-
+      In this configuration section, you can define, which blocking group(s) should be used for which client in your network.
+
+      Clients without a group assignment will use automatically the default group.
+
+      You can use the client name, client's IP address, client's full-qualified domain name or a client subnet as CIDR notation.
+
+      If full-qualified domain name is used (for example "myclient.ddns.org"), blocky will try to resolve the IP address (A and AAAA records) of this domain. If client's IP address matches with the result, the defined group will be used.
+network:
+  53/udp: UDP port for DNS requests.
+  53/tcp: TCP port for DNS requests.

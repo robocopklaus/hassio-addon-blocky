@@ -1,0 +1,8 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Start blocky as service
+# s6-overlay docs: https://github.com/just-containers/s6-overlay
+# ==============================================================================
+CONFIG="/etc/blocky.yaml"
+
+exec blocky --config "${CONFIG}" > /dev/null
