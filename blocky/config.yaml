@@ -58,4 +58,4 @@ schema:
     - client: str
       groups:
         - str
-  # image: "ghcr.io/home-assistant/{arch}-addon-example"
+  # image: "ghcr.io/robocopklaus/{arch}-addon-blocky"
