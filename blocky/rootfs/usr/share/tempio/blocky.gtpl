@@ -1,45 +1,56 @@
----
+# Blocky Configuration Template
+# This template dynamically generates the Blocky configuration based on user inputs.
+
+## Upstream DNS Resolvers Configuration
 upstream:
   default:
-  {{ range .defaultUpstreamResolvers }}
+  {{- range .defaultUpstreamResolvers }}
     - {{ . }}
-  {{ end }}
+  {{- end }}
 
+## Bootstrap DNS Servers
+# Used for resolving upstream DoH and DoT servers by hostname and blacklist URLs.
 bootstrapDns:
-{{ range .bootstrapDns }}
-{{ if .upstream }}
+{{- range .bootstrapDns }}
+{{- if .upstream }}
   - upstream: {{ .upstream }}
-  {{ if .ips }}
+  {{- if .ips }}
     ips:
-    {{ range .ips }}
+    {{- range .ips }}
       - {{ . }}
-    {{ end }}
-  {{ end }}
-{{ end }}
-{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
 
+## Conditional DNS Mapping
+# Redirect DNS queries for specific domains to designated DNS resolvers.
 conditional:
   mapping:
-  {{ range .conditionalMapping }}
+  {{- range .conditionalMapping }}
     {{ .domain }}: {{ .ip }}
-  {{ end }}
+  {{- end }}
 
+## Client Lookup Configuration
+# Defines the upstream DNS server for reverse DNS lookups, typically the router.
 clientLookup:
   upstream: tcp+udp:{{ .router }}
 
+## Blocking Configuration
+# Configures blacklists and blocking groups per client.
 blocking:
   blackLists:
-  {{ range .blackLists }}
+  {{- range .blackLists }}
     {{ .group }}:
-    {{ range .entries }}
+    {{- range .entries }}
       - {{ . }}
-    {{ end }}
-  {{ end }}
+    {{- end }}
+  {{- end }}
 
   clientGroupsBlock:
-  {{ range .clientGroupsBlock }}
+  {{- range .clientGroupsBlock }}
     {{ .client }}:
-    {{ range .groups }}
+    {{- range .groups }}
       - {{ . }}
-    {{ end }}
-  {{ end }}
+    {{- end }}
+  {{- end }}

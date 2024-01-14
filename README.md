@@ -1,31 +1,43 @@
 <div align="center">
   <img height="200" src="https://github.com/0xERR0R/blocky/blob/main/docs/blocky.svg">
-  <br>
-  <br>
-  <h1>Blocky Home Assistant add-on</h1>
+  <h1>Blocky Home Assistant Add-On</h1>
+  <p>A powerful DNS proxy and ad-blocker for your Home Assistant ecosystem.</p>
 </div>
+
+## Introduction
+
+Blocky is an advanced DNS proxy and ad-blocking add-on designed for Home Assistant, offering features like custom DNS resolution, conditional forwarding, performance enhancement through caching, and support for modern DNS protocols including DoH and DoT.
+
+## Features
+
+- DNS query blocking with customizable lists (e.g., ads, malware)
+- Advanced DNS settings per client group
+- Performance enhancements via caching and prefetching
+- Supports DNS over HTTPS/TLS
+- Security-focused with DNSSEC and eDNS
+- Privacy-centric design without user data collection
+- Easy to set up and configure
 
 ## Installation
 
-1. in Home Assistant go to **[Settings → Add-ons → Add-on store](https://my.home-assistant.io/redirect/supervisor_store/)** and click **⋮ → Repositories**, fill in</br>  `https://github.com/robocopklaus/hassio-addon-blocky` and click **Add → Close** or click the **Add repository** button below, click **Add → Close** (You might need to enter the **internal IP address** of your Home Assistant instance first). [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Frobocopklaus%2Fhassio-addon-blocky)
+1. Navigate to **[Settings → Add-ons → Add-on Store](https://my.home-assistant.io/redirect/supervisor_store/)** in Home Assistant.
+2. Click **⋮ → Repositories**, enter `https://github.com/robocopklaus/hassio-addon-blocky` and click **Add → Close**. Alternatively, use the [Add-on Repository Badge](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Frobocopklaus%2Fhassio-addon-blocky) for a quick setup.
+3. Find the Blocky add-on in the store, click on it, and press **Install**. Wait for the installation to complete.
 
-2. Click on the addon and press **Install** and wait till the addon is installed.
+## Post-Installation Configuration
 
-<!--
+After installation, configure Blocky via the Home Assistant interface:
 
-Notes to developers after forking or using the github template feature:
-- While developing comment out the 'image' key from 'example/config.yaml' to make the supervisor build the addon
-  - Remember to put this back when pushing up your changes.
-- When you merge to the 'main' branch of your repository a new build will be triggered.
-  - Make sure you adjust the 'version' key in 'example/config.yaml' when you do that.
-  - Make sure you update 'example/CHANGELOG.md' when you do that.
-  - The first time this runs you might need to adjust the image configuration on github container registry to make it public
-  - You may also need to adjust the github Actions configuration (Settings > Actions > General > Workflow > Read & Write)
-- Adjust the 'image' key in 'example/config.yaml' so it points to your username instead of 'home-assistant'.
-  - This is where the build images will be published to.
-- Rename the example directory.
-  - The 'slug' key in 'example/config.yaml' should match the directory name.
-- Adjust all keys/url's that points to 'home-assistant' to now point to your user/fork.
-- Share your repository on the forums https://community.home-assistant.io/c/projects/9
-- Do awesome stuff!
- -->
+- Access the Blocky add-on and navigate to the 'Configuration' tab.
+- Modify the settings as needed to suit your network and preferences.
+- Save your changes and restart the add-on for them to take effect.
+
+For detailed configuration options and examples, refer to the Blocky Configuration Guide.
+
+## Usage
+
+Blocky can be used to:
+
+- Enhance network security by blocking malicious domains.
+- Improve browsing speed by reducing ad load times.
+- Customize DNS resolution for specific domains in your network.
