@@ -1,7 +1,7 @@
 ---
 # https://developers.home-assistant.io/docs/add-ons/configuration#add-on-config
 name: Blocky
-version: "0.23"
+version: "0.1.0"
 slug: blocky
 description: Fast and lightweight DNS proxy as ad-blocker for local network with many features
 url: "https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky"
@@ -32,8 +32,10 @@ options:
       entries: []
     - group: ads
       entries:
-        - https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
         - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+        - https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
+        - http://sysctl.org/cameleon/hosts
+        - https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
   clientGroupsBlock:
     - client: default
       groups:
