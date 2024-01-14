@@ -25,7 +25,8 @@ conditional:
   {{ end }}
 
 clientLookup:
-  upstream: {{ .router }}
+  upstream: tcp+udp:{{ .router }}
+
 blocking:
   blackLists:
   {{ range .blackLists }}

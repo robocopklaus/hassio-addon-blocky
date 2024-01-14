@@ -1,1 +1,1 @@
-# Home Assistant Add-on: Blocky
+# Blocky
