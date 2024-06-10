@@ -1,7 +1,7 @@
 ---
 # https://developers.home-assistant.io/docs/add-ons/configuration#add-on-config
 name: Blocky
-version: "0.2.0"
+version: "0.2.1"
 slug: blocky
 description: Fast and lightweight DNS proxy as ad-blocker for local network with many features
 url: "https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky"
@@ -13,7 +13,7 @@ arch:
   - i386
 init: false
 startup: system
-image: "ghcr.io/robocopklaus/{arch}-addon-blocky"
+image: "ghcr.io/robocopklaus/hassio-addon-blocky-{arch}"
 ports:
   53/udp: 53
   53/tcp: 53
