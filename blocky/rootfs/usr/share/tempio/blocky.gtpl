@@ -54,3 +54,14 @@ blocking:
       - {{ . }}
     {{- end }}
   {{- end }}
+
+## Caching Configuration
+caching:
+  minTime: {{ .caching.minTime }}
+  maxTime: {{ .caching.maxTime }}
+  maxItemsCount: {{ .caching.maxItemsCount }}
+  prefetching: {{ .caching.prefetching }}
+  prefetchExpires: {{ .caching.prefetchExpires }}
+  prefetchThreshold: {{ .caching.prefetchThreshold }}
+  prefetchMaxItemsCount: {{ .caching.prefetchMaxItemsCount }}
+  cacheTimeNegative: {{ .caching.cacheTimeNegative }}
