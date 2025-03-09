@@ -24,6 +24,10 @@ configuration:
     name: Client-Specific Blocking Groups
     description: Assign blocking groups to specific network clients. Use client names, IPs, FQDNs, or CIDR notations for identification. Clients are assigned to the default group if no specific group is set. Blocky resolves FQDNs to apply group settings based on IP matches.
 
+  caching:
+    name: Caching
+    description: Configure DNS caching settings. Blocky caches DNS responses according to their TTL values to reduce traffic and improve response times by serving results from cache.
+
 network:
   53/udp: UDP port for DNS requests.
   53/tcp: TCP port for DNS requests.
