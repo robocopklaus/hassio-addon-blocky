@@ -9,6 +9,7 @@ RUN \
   "https://github.com/home-assistant/tempio/releases/download/${TEMPIO_VERSION}/tempio_${BUILD_ARCH}"
 
 # Setup blocky
+# renovate: datasource=repology depName=alpine_edge/blocky versioning=loose
 RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community blocky=0.25-r1
 
 # Copy root filesystem
