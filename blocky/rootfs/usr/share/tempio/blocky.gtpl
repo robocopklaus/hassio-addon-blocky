@@ -65,3 +65,14 @@ caching:
   prefetchThreshold: {{ .caching.prefetchThreshold }}
   prefetchMaxItemsCount: {{ .caching.prefetchMaxItemsCount }}
   cacheTimeNegative: {{ .caching.cacheTimeNegative }}
+
+## Prometheus Metrics Configuration
+{{- if .prometheus.enabled }}
+# Enable HTTP listener for Prometheus metrics endpoint
+port: {{ .prometheus.port }}
+
+# Prometheus metrics endpoint configuration
+prometheus:
+  enable: true
+  path: {{ .prometheus.path }}
+{{- end }}
