@@ -10,7 +10,7 @@ RUN \
 
 # Setup blocky
 # renovate: datasource=repology depName=alpine_edge/blocky versioning=loose
-RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community blocky=0.25-r1
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community blocky=0.27.0-r0
 
 # Copy root filesystem
 COPY rootfs /
