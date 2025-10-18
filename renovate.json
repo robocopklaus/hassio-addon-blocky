@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": [
+    "after 10pm every weekday",
+    "before 5am every weekday",
+    "every weekend"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "commitMessagePrefix": "chore(deps):",
+  "packageRules": [
+    {
+      "description": "Auto-merge patch updates for GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Group all Home Assistant related updates",
+      "matchPackagePatterns": ["home-assistant"],
+      "groupName": "Home Assistant"
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Track Alpine APK package version for blocky in Dockerfile",
+      "customType": "regex",
+      "fileMatch": ["^blocky/Dockerfile$"],
+      "matchStrings": [
+        "# renovate: datasource=repology depName=alpine_edge/blocky versioning=loose\\n.*?blocky=(?<currentValue>\\d+\\.\\d+-r\\d+)"
+      ],
+      "datasourceTemplate": "repology",
+      "depNameTemplate": "alpine_edge/blocky",
+      "versioningTemplate": "loose"
+    },
+    {
+      "description": "Track Tempio version in build.yaml and Dockerfile",
+      "customType": "regex",
+      "fileMatch": ["^blocky/build\\.yaml$", "^blocky/Dockerfile$"],
+      "matchStrings": [
+        "TEMPIO_VERSION:\\s+[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "home-assistant/tempio",
+      "extractVersionTemplate": "^(?<version>.*)$"
+    }
+  ]
+}
