@@ -32,10 +32,8 @@
       "customType": "regex",
       "fileMatch": ["^blocky/Dockerfile$"],
       "matchStrings": [
-        "# renovate: datasource=repology depName=alpine_edge/blocky versioning=loose\\n.*?blocky=(?<currentValue>\\d+\\.\\d+-r\\d+)"
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\n.*?blocky=(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?-r\\d+)"
       ],
-      "datasourceTemplate": "repology",
-      "depNameTemplate": "alpine_edge/blocky",
       "versioningTemplate": "loose"
     },
     {
