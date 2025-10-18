@@ -1,7 +1,7 @@
 ---
 # https://developers.home-assistant.io/docs/add-ons/configuration#add-on-config
 name: Blocky
-version: "0.2.9"
+version: "0.3.0"
 slug: blocky
 description: Fast and lightweight DNS proxy as ad-blocker for local network with many features
 url: "https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky"
@@ -17,6 +17,10 @@ image: "ghcr.io/robocopklaus/hassio-addon-blocky-{arch}"
 ports:
   53/udp: 53
   53/tcp: 53
+ports_description:
+  53/udp: DNS queries (UDP)
+  53/tcp: DNS queries (TCP)
+  4000/tcp: Prometheus metrics endpoint (when enabled)
 options:
   router: null
   defaultUpstreamResolvers:
@@ -50,7 +54,12 @@ options:
     prefetchThreshold: 5
     prefetchMaxItemsCount: 0
     cacheTimeNegative: 30m
-    
+
+  prometheus:
+    enabled: false
+    port: 4000
+    path: /metrics
+
 schema:
   router: str
   defaultUpstreamResolvers:
@@ -79,3 +88,7 @@ schema:
     prefetchThreshold: int
     prefetchMaxItemsCount: int
     cacheTimeNegative: str
+  prometheus:
+    enabled: bool
+    port: int
+    path: str

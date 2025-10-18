@@ -84,6 +84,10 @@ The add-on configuration is defined in `blocky/config.yaml`:
 - `blackLists` - Block lists organized by groups (ads, malware, etc.)
 - `clientGroupsBlock` - Maps client IPs to blocking groups
 - `caching` - DNS cache settings (TTL, prefetching, etc.)
+- `prometheus` - Prometheus metrics configuration:
+  - `enabled` (boolean, default: false) - Enable/disable Prometheus metrics endpoint
+  - `port` (integer, default: 4000) - HTTP port for metrics endpoint
+  - `path` (string, default: /metrics) - URL path for metrics endpoint
 
 ## Dependency Management
 
