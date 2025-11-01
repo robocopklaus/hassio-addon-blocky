@@ -1,0 +1,36 @@
+# Git
+.git/
+.github/
+.gitignore
+
+# Node.js
+node_modules/
+package.json
+package-lock.json
+pnpm-lock.yaml
+.npmrc
+
+# Documentation
+README.md
+CLAUDE.md
+*.md
+!blocky/DOCS.md
+!blocky/CHANGELOG.md
+
+# CI/CD
+.releaserc.json
+
+# Scripts (not needed in container)
+scripts/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store

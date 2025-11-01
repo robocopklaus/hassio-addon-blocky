@@ -1,51 +1,48 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
   "timezone": "Europe/Berlin",
   "schedule": [
     "after 10pm every weekday",
     "before 5am every weekday",
     "every weekend"
   ],
-  "labels": [
-    "dependencies"
-  ],
+  "labels": ["dependencies"],
+  "semanticCommits": "enabled",
   "commitMessagePrefix": "chore(deps):",
+  "dependencyDashboard": true,
+  "stabilityDays": 3,
   "packageRules": [
     {
-      "description": "Auto-merge patch updates for GitHub Actions",
-      "matchManagers": ["github-actions"],
+      "description": "Blocky updates trigger version bump",
+      "matchDatasources": ["github-releases"],
+      "matchPackageNames": ["0xERR0R/blocky"],
+      "commitMessagePrefix": "feat(deps):",
+      "automerge": false
+    },
+    {
+      "description": "Tempio updates trigger patch bump",
+      "matchDatasources": ["github-releases"],
+      "matchPackageNames": ["home-assistant/tempio"],
+      "commitMessagePrefix": "fix(deps):",
+      "automerge": false
+    },
+    {
+      "description": "Auto-merge patch updates only",
       "matchUpdateTypes": ["patch"],
-      "automerge": true
+      "automerge": true,
+      "automergeType": "branch"
     },
     {
-      "description": "Group all Home Assistant related updates",
-      "matchPackagePatterns": ["home-assistant"],
-      "groupName": "Home Assistant"
-    }
-  ],
-  "customManagers": [
-    {
-      "description": "Track Alpine APK package version for blocky in Dockerfile",
-      "customType": "regex",
-      "fileMatch": ["^blocky/Dockerfile$"],
-      "matchStrings": [
-        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\n.*?blocky=(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?-r\\d+)"
-      ],
-      "versioningTemplate": "loose"
+      "description": "Group Home Assistant base images",
+      "matchDatasources": ["docker"],
+      "matchPackagePatterns": ["^ghcr.io/home-assistant/.*-base$"],
+      "groupName": "Home Assistant base images"
     },
     {
-      "description": "Track Tempio version in build.yaml and Dockerfile",
-      "customType": "regex",
-      "fileMatch": ["^blocky/build\\.yaml$", "^blocky/Dockerfile$"],
-      "matchStrings": [
-        "TEMPIO_VERSION:\\s+[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
-      ],
-      "datasourceTemplate": "github-releases",
-      "depNameTemplate": "home-assistant/tempio",
-      "extractVersionTemplate": "^(?<version>.*)$"
+      "description": "Group semantic-release packages",
+      "matchPackagePatterns": ["^@semantic-release/", "^semantic-release$"],
+      "groupName": "semantic-release packages"
     }
   ]
 }
