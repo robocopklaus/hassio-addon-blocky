@@ -2,140 +2,206 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Overview
 
-This is a Home Assistant add-on for Blocky, a DNS proxy and ad-blocker. The add-on wraps the upstream Blocky project (0xERR0R/blocky) and provides integration with Home Assistant's supervisor architecture.
+This is a Home Assistant add-on repository that packages [Blocky](https://github.com/0xERR0R/blocky) as a containerized add-on. Blocky is a DNS proxy and ad-blocker that provides network-wide ad blocking, custom DNS resolution, and support for modern DNS protocols (DoH/DoT).
+
+## Repository Structure
+
+- **blocky/**: The add-on itself (Dockerfile, config, rootfs, templates)
+- **scripts/**: Automation scripts for version management
+- **.github/workflows/**: CI/CD workflow for releases
+- **Root-level files**: Package.json, semantic-release configuration, and Renovate configuration
+
+## Common Commands
+
+### Development & Testing
+
+```bash
+# Install dependencies (for semantic-release)
+pnpm install
+
+# Test semantic-release (dry-run)
+pnpm run release:dry-run
+
+# Build Docker image locally (replace amd64 with target architecture)
+docker build --build-arg BUILD_FROM="ghcr.io/home-assistant/amd64-base:3.20" \
+             --build-arg BUILD_ARCH="amd64" \
+             --file blocky/Dockerfile \
+             -t local/blocky-addon blocky
+
+# Run container locally for testing
+docker run --rm \
+  -p 53:53/tcp -p 53:53/udp -p 4000:4000 \
+  -v $(pwd)/test-options.json:/data/options.json \
+  local/blocky-addon
+
+# Check health endpoint
+curl http://localhost:4000/api/health
+```
+
+### Release Process
+
+Releases are managed by **semantic-release** using conventional commits:
+
+```bash
+# Trigger release via GitHub Actions (manual workflow)
+# Go to Actions → Release Blocky → Run workflow
+
+# Dry-run locally
+pnpm run release:dry-run
+```
+
+**Conventional Commit Types:**
+- `feat:` → Minor version bump (new features)
+- `fix:` → Patch version bump (bug fixes)
+- `BREAKING CHANGE:` → Major version bump
+- `chore:`, `docs:`, `refactor:` → No version bump
 
 ## Architecture
 
-### Directory Structure
+### Release & Version Management
 
-- `blocky/` - The main add-on directory
-  - `config.yaml` - Home Assistant add-on configuration (metadata, default options, schema)
-  - `build.yaml` - Multi-architecture build configuration
-  - `Dockerfile` - Container build instructions
-  - `rootfs/` - Files copied into the container filesystem
-    - `etc/cont-init.d/config.sh` - Initialization script that generates Blocky config using tempio
-    - `etc/services.d/blocky/run` - Service startup script
-    - `etc/services.d/blocky/finish` - Service cleanup/restart handler
-    - `usr/share/tempio/blocky.gtpl` - Go template for Blocky configuration
-  - `translations/` - i18n files for Home Assistant UI
+The repository uses **semantic-release** to automate versioning and releases:
 
-### Configuration Flow
+1. **Commit Analysis**: Analyzes commits since last release using conventional commits
+2. **Version Update**: `scripts/update-addon-version.mjs` updates `blocky/config.yaml`
+3. **Changelog Generation**: Updates `blocky/CHANGELOG.md`
+4. **Git Commit**: Commits version changes with `[skip ci]` tag
+5. **GitHub Release**: Creates GitHub release with notes
+6. **Docker Build**: Workflow builds and pushes multi-arch images to GHCR
 
-1. User configures add-on via Home Assistant UI (settings defined in `config.yaml`)
-2. On startup, `/etc/cont-init.d/config.sh` runs and uses tempio to render `blocky.gtpl` template with user options from `/data/options.json`
-3. Generated config is written to `/etc/blocky.yaml`
-4. Blocky binary starts via `/etc/services.d/blocky/run` using the generated config
+**Configuration**: `.releaserc.json` defines the semantic-release pipeline.
 
-### Key Technical Details
+### Docker Image Building
 
-- Uses s6-overlay for process supervision (Home Assistant standard)
-- Configuration is dynamically generated from a Go template (`blocky.gtpl`), not static
-- The add-on installs Blocky v0.25 from Alpine edge/community repository
-- Supports 5 architectures: armhf, armv7, aarch64, amd64, i386
+The GitHub workflow (`.github/workflows/manual-release.yml`) builds images for all supported architectures:
 
-## Development Commands
+- **Architectures**: amd64, aarch64, armv7, armhf
+- **Registry**: GitHub Container Registry (ghcr.io)
+- **Tagging**: Each release creates both versioned (`v1.0.0`) and `latest` tags
+- **Multi-arch manifest**: Published after individual arch images are built
 
-### Linting
+### Add-on Architecture
 
-```bash
-# Lint add-on configuration (requires Home Assistant action-addon-linter)
-# This is normally run in CI via .github/workflows/lint.yaml
-```
+The add-on itself (in `blocky/`) follows Home Assistant add-on conventions:
 
-Note: Linting typically requires the `frenck/action-addon-linter` GitHub Action and is run automatically in CI.
+**Configuration Flow:**
+1. User sets options in Home Assistant UI (stored in `/data/options.json`)
+2. `rootfs/etc/cont-init.d/config.sh` runs at container start
+3. Tempio template (`rootfs/usr/share/tempio/blocky.gtpl`) generates Blocky config
+4. Generated config saved to `/config/config.yml` and `/etc/blocky/config.yml`
+5. S6-overlay starts Blocky service (`rootfs/etc/services.d/blocky/run`)
 
-### Building
+**Custom Configuration Mode:**
+- When `custom_config: true` in options, users can manually edit `/config/config.yml`
+- Template generation is skipped, preserving manual edits
+- Useful for advanced Blocky features not exposed in the UI
 
-The add-on uses Home Assistant Builder for multi-architecture builds:
+**Service Management:**
+- Uses **s6-overlay** for process supervision
+- Init scripts in `rootfs/etc/cont-init.d/` run before services
+- Service definitions in `rootfs/etc/services.d/`
+- Finish script (`blocky/finish`) handles service failures
 
-```bash
-# Build for specific architecture (normally done in CI)
-# Uses home-assistant/builder@2025.09.0 GitHub Action
-# Example for local testing:
-docker build --build-arg BUILD_FROM="ghcr.io/home-assistant/amd64-base:3.20" -f blocky/Dockerfile blocky/
-```
+## Key Files
 
-### Testing Locally
+### Repository-Level
+- **package.json**: Node.js dependencies (semantic-release)
+- **.releaserc.json**: Semantic-release configuration
+- **renovate.json**: Renovate configuration for automated dependency updates
+- **scripts/update-addon-version.mjs**: Updates version in `blocky/config.yaml` during release
 
-To test the add-on locally in Home Assistant:
+### Add-on Level (blocky/)
+- **config.yaml**: Add-on metadata, version, options schema, and defaults
+- **Dockerfile**: Multi-arch container build (downloads Blocky binary from upstream)
+- **build.yaml**: Defines base images for different architectures
+- **rootfs/etc/cont-init.d/config.sh**: Configuration generation script
+- **rootfs/etc/services.d/blocky/run**: Service start script
+- **rootfs/usr/share/tempio/blocky.gtpl**: Jinja2-style template for Blocky config
+- **translations/en.yaml**: UI text and option descriptions (i18n)
+- **DOCS.md**: User-facing documentation for the add-on
 
-1. Add this repository URL to Home Assistant: Supervisor → Add-on Store → ⋮ → Repositories
-2. Install the add-on from the store
-3. Configure via the Configuration tab
-4. Start the add-on and check logs
+## Dependency Management with Renovate
 
-### CI/CD
+This repository uses **Renovate** for automated dependency updates. Renovate is configured via `renovate.json` and monitors:
 
-- `.github/workflows/lint.yaml` - Runs Home Assistant add-on linter on push/PR
-- `.github/workflows/builder.yaml` - Builds multi-arch images and pushes to ghcr.io
-  - Only builds add-ons where monitored files changed: `build.yaml`, `config.yaml`, `Dockerfile`, `rootfs`
-  - Builds test images on PRs, production images on main branch pushes
+- **Blocky version** (from GitHub releases)
+- **Tempio version** (from GitHub releases)
+- **Home Assistant base images** (from Docker registry)
+- **npm packages** (semantic-release and plugins)
+- **GitHub Actions** (workflow dependencies)
 
-## Configuration Schema
+### How Renovate Works
 
-The add-on configuration is defined in `blocky/config.yaml`:
+**Automatic Updates (Auto-merged):**
+- Patch and minor updates to npm packages, base images, and GitHub Actions
+- Auto-merged after 3-day stability period
+- Uses `chore(deps):` commit prefix (no version bump)
 
-- `router` - IP address of router for client lookups (reverse DNS)
-- `defaultUpstreamResolvers` - List of upstream DNS servers (supports DoH/DoT)
-- `bootstrapDns` - DNS servers to resolve upstream DoH/DoT hostnames
-- `conditionalMapping` - Domain-specific DNS routing
-- `blackLists` - Block lists organized by groups (ads, malware, etc.)
-- `clientGroupsBlock` - Maps client IPs to blocking groups
-- `caching` - DNS cache settings (TTL, prefetching, etc.)
-- `prometheus` - Prometheus metrics configuration:
-  - `enabled` (boolean, default: false) - Enable/disable Prometheus metrics endpoint
-  - `port` (integer, default: 4000) - HTTP port for metrics endpoint
-  - `path` (string, default: /metrics) - URL path for metrics endpoint
+**Manual Review (PRs Created):**
+- **Blocky updates**: Creates PR with `feat(deps):` prefix → triggers minor version bump
+- **Tempio updates**: Creates PR with `fix(deps):` prefix → triggers patch version bump
+- **Major updates**: Requires manual review and approval
 
-## Dependency Management
+### Updating Blocky Version (Automated)
 
-### Renovate Bot
+Renovate automatically creates a PR when a new Blocky version is released:
 
-This repository uses Renovate Bot for automated dependency updates. Renovate is configured via `renovate.json` and handles:
+1. Renovate detects new Blocky release on GitHub
+2. Creates PR updating `BLOCKY_VERSION` in `blocky/Dockerfile`
+3. PR uses `feat(deps): update Blocky to vX.Y.Z` commit message
+4. Review and merge the PR
+5. Trigger the manual release workflow in GitHub Actions
+6. Semantic-release creates a minor version bump
 
-- **Alpine APK packages** - Tracks blocky package version in Dockerfile using Repology datasource
-- **GitHub Actions** - Auto-updates workflow actions (patch updates auto-merge)
-- **Home Assistant components** - Groups base images and builder updates
-- **Tempio version** - Tracks releases from home-assistant/tempio
+### Updating Blocky Version (Manual)
 
-**How it works:**
-1. Renovate runs on schedule (evenings/weekends)
-2. Detects new versions via configured datasources
-3. Creates PRs automatically with version bumps
-4. CI runs tests on the PR
-5. Review and merge (or auto-merge for patches)
+If you need to update Blocky manually (e.g., testing a pre-release):
 
-**To manually trigger a check:** Re-run the Renovate workflow in GitHub Actions
+1. Edit `blocky/Dockerfile` and update the `BLOCKY_VERSION` ARG:
+   ```dockerfile
+   ARG BLOCKY_VERSION=v0.27.0  # Change this
+   ```
+2. Commit with `feat: update Blocky to vX.Y.Z`
+3. Trigger release workflow
 
-### Updating Configuration Options
+### Renovate Configuration
 
-1. Modify `blocky/config.yaml` - update `options`, `schema`, or both
-2. Update `blocky/rootfs/usr/share/tempio/blocky.gtpl` to use new options
-3. Test configuration generation by installing add-on locally
+The Dockerfile uses inline comments to tell Renovate what to track:
 
-### Updating Blocky Version
-
-**Automated (Recommended):** Renovate will create a PR when a new version is available in Alpine edge/community.
-
-**Manual:** Edit `blocky/Dockerfile` line 13 to change the version:
 ```dockerfile
-# renovate: datasource=repology depName=alpine_edge/blocky versioning=loose
-RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community blocky=X.XX-rX
+# renovate: datasource=github-releases depName=0xERR0R/blocky
+ARG BLOCKY_VERSION=v0.27.0
 ```
 
-**Important:** Keep the `# renovate:` comment on line 12 for automated tracking to work.
+See `renovate.json` for complete configuration including automerge rules, grouping, and schedules.
 
-### Modifying Startup/Init Scripts
+## Configuration Template Guidelines
 
-- Edit files in `blocky/rootfs/etc/`
-- Scripts use bashio for Home Assistant integration (logging, config access)
-- Must be executable and use shebang `#!/usr/bin/with-contenv bashio`
+When modifying `rootfs/usr/share/tempio/blocky.gtpl`:
 
-## Important Notes
+- Use Jinja2/tempio syntax for dynamic values (e.g., `{{ .upstream_dns }}`)
+- Reference add-on options defined in `blocky/config.yaml`
+- **Always consult official Blocky docs**: https://0xerr0r.github.io/blocky/latest/configuration/
+  - This is for Blocky's `config.yml` (the DNS proxy config)
+  - NOT to be confused with add-on's `config.yaml` (add-on metadata)
 
-- The add-on version in `config.yaml` should be updated when making changes
-- CI automatically builds and pushes images to `ghcr.io/robocopklaus/hassio-addon-blocky-{arch}`
-- The tempio template syntax is Go template format
-- DNS port 53 (TCP/UDP) is exposed and mapped by default
+## Translations
+
+**Always use `blocky/translations/` for UI text**:
+- Add-on option labels and descriptions belong in `translations/en.yaml`
+- Do NOT embed user-facing text in the `schema` section of `config.yaml`
+- Schema should only contain validation rules (regex patterns, types)
+
+## Port Mappings
+
+- **53/tcp & 53/udp**: DNS service (standard DNS port)
+- **4000/tcp**: Blocky HTTP API and metrics (health check at `/api/health`)
+
+## Important References
+
+- **Blocky Configuration Docs**: https://0xerr0r.github.io/blocky/latest/configuration/
+- **Blocky GitHub**: https://github.com/0xERR0R/blocky
+- **Home Assistant Add-on Docs**: https://developers.home-assistant.io/docs/add-ons/
+- **Tempio Template Engine**: https://github.com/home-assistant/tempio

@@ -1,0 +1,248 @@
+name: Release Blocky
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run semantic-release without publishing artifacts"
+        type: boolean
+        default: false
+
+# Prevent multiple releases from running simultaneously
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Dynamic image name based on repository
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+  BUILD_DESCRIPTION: Fast and lightweight DNS proxy and ad-blocker for your network
+  BUILD_NAME: Blocky
+
+jobs:
+  semantic_release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
+    outputs:
+      version: ${{ steps.semantic.outputs.new_release_version }}
+      published: ${{ steps.semantic.outputs.new_release_published }}
+      commit_sha: ${{ steps.get_sha.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.19.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.11.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run semantic-release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v5
+        with:
+          dry_run: ${{ inputs.dry_run }}
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get commit SHA after semantic-release
+        id: get_sha
+        run: |
+          git fetch origin main
+          echo "sha=$(git rev-parse origin/main)" >> $GITHUB_OUTPUT
+
+  build_and_publish:
+    name: Build & Push Container
+    runs-on: ubuntu-latest
+    needs: semantic_release
+    if: needs.semantic_release.outputs.published == 'true' && inputs.dry_run != 'true'
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Checkout the commit that includes version updates from semantic-release
+          ref: ${{ needs.semantic_release.outputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read build configuration
+        id: build_config
+        run: |
+          # Extract base images from build.yaml for each architecture
+          AMD64_BASE=$(yq '.build_from.amd64' blocky/build.yaml)
+          ARM64_BASE=$(yq '.build_from.aarch64' blocky/build.yaml)
+          ARMV7_BASE=$(yq '.build_from.armv7' blocky/build.yaml)
+          ARMV6_BASE=$(yq '.build_from.armhf' blocky/build.yaml)
+
+          echo "amd64_base=${AMD64_BASE}" >> $GITHUB_OUTPUT
+          echo "arm64_base=${ARM64_BASE}" >> $GITHUB_OUTPUT
+          echo "armv7_base=${ARMV7_BASE}" >> $GITHUB_OUTPUT
+          echo "armv6_base=${ARMV6_BASE}" >> $GITHUB_OUTPUT
+
+      - name: Build and export amd64 for scanning
+        uses: docker/build-push-action@v6
+        env:
+          VERSION: ${{ needs.semantic_release.outputs.version }}
+        with:
+          context: blocky
+          file: blocky/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:scan
+          build-args: |
+            BUILD_ARCH=amd64
+            BUILD_FROM=${{ steps.build_config.outputs.amd64_base }}
+            BUILD_VERSION=${{ needs.semantic_release.outputs.version }}
+            BUILD_DESCRIPTION=${{ env.BUILD_DESCRIPTION }}
+            BUILD_NAME=${{ env.BUILD_NAME }}
+            BUILD_REPOSITORY=${{ github.repository }}
+            BUILD_REF=${{ needs.semantic_release.outputs.commit_sha }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push architecture-specific images
+        env:
+          VERSION: ${{ needs.semantic_release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          echo "::group::Building architecture-specific images"
+
+          # Build function for each architecture
+          build_arch() {
+            local ARCH="$1"
+            local PLATFORM="$2"
+            local BUILD_FROM="$3"
+
+            echo "::notice::Building ${ARCH} for ${PLATFORM}"
+
+            docker buildx build \
+              --platform "${PLATFORM}" \
+              --push \
+              --tag "${IMAGE_NAME}/${ARCH}:${VERSION}" \
+              --tag "${IMAGE_NAME}/${ARCH}:latest" \
+              --file blocky/Dockerfile \
+              --build-arg BUILD_ARCH="${ARCH}" \
+              --build-arg BUILD_FROM="${BUILD_FROM}" \
+              --build-arg BUILD_VERSION="${VERSION}" \
+              --build-arg BUILD_DESCRIPTION="${BUILD_DESCRIPTION}" \
+              --build-arg BUILD_NAME="${BUILD_NAME}" \
+              --build-arg BUILD_REPOSITORY="${GITHUB_REPOSITORY}" \
+              --build-arg BUILD_REF="${GITHUB_SHA}" \
+              --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              blocky
+
+            if [ $? -ne 0 ]; then
+              echo "::error::Failed to build ${ARCH}"
+              return 1
+            fi
+
+            echo "::notice::Successfully built ${ARCH}"
+          }
+
+          # Build all architectures
+          build_arch amd64 linux/amd64 "${{ steps.build_config.outputs.amd64_base }}" || exit 1
+          build_arch aarch64 linux/arm64 "${{ steps.build_config.outputs.arm64_base }}" || exit 1
+          build_arch armv7 linux/arm/v7 "${{ steps.build_config.outputs.armv7_base }}" || exit 1
+          build_arch armhf linux/arm/v6 "${{ steps.build_config.outputs.armv6_base }}" || exit 1
+
+          echo "::endgroup::"
+
+      - name: Create and push multi-arch manifest
+        env:
+          VERSION: ${{ needs.semantic_release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          echo "::group::Creating multi-arch manifest"
+
+          # Create manifest for versioned tag
+          docker buildx imagetools create \
+            -t "${IMAGE_NAME}:${VERSION}" \
+            "${IMAGE_NAME}/amd64:${VERSION}" \
+            "${IMAGE_NAME}/aarch64:${VERSION}" \
+            "${IMAGE_NAME}/armv7:${VERSION}" \
+            "${IMAGE_NAME}/armhf:${VERSION}"
+
+          # Create manifest for latest tag
+          docker buildx imagetools create \
+            -t "${IMAGE_NAME}:latest" \
+            "${IMAGE_NAME}/amd64:latest" \
+            "${IMAGE_NAME}/aarch64:latest" \
+            "${IMAGE_NAME}/armv7:latest" \
+            "${IMAGE_NAME}/armhf:latest"
+
+          echo "::endgroup::"
+
+          echo "::notice::Multi-arch manifest created successfully"
+
+      - name: Inspect and summarize images
+        env:
+          VERSION: ${{ needs.semantic_release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          echo "::group::Image Summary"
+
+          echo "### Published Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Inspect multi-arch manifest
+          echo "#### Multi-arch Manifest" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          docker buildx imagetools inspect "${IMAGE_NAME}:${VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # List all tags
+          echo "#### Published Tags" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${IMAGE_NAME}:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${IMAGE_NAME}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${IMAGE_NAME}/amd64:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${IMAGE_NAME}/aarch64:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${IMAGE_NAME}/armv7:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${IMAGE_NAME}/armhf:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+
+          echo "::endgroup::"
+
+          echo "::notice::Release ${VERSION} published successfully to GHCR"

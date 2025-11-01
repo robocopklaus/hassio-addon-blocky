@@ -1,94 +1,77 @@
----
-# https://developers.home-assistant.io/docs/add-ons/configuration#add-on-config
 name: Blocky
-version: "0.3.0"
+version: 0.3.0
 slug: blocky
-description: Fast and lightweight DNS proxy as ad-blocker for local network with many features
-url: "https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky"
+description: Fast and lightweight DNS proxy and ad-blocker for your network
+url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
 arch:
   - armhf
   - armv7
-  - aarch64
   - amd64
-  - i386
+  - aarch64
+image: ghcr.io/robocopklaus/hassio-addon-blocky/{arch}
 init: false
 startup: system
-image: "ghcr.io/robocopklaus/hassio-addon-blocky-{arch}"
 ports:
-  53/udp: 53
   53/tcp: 53
+  53/udp: 53
+  4000/tcp: 4000
 ports_description:
-  53/udp: DNS queries (UDP)
-  53/tcp: DNS queries (TCP)
-  4000/tcp: Prometheus metrics endpoint (when enabled)
+  53/tcp: DNS TCP port
+  53/udp: DNS UDP port
+  4000/tcp: HTTP API and metrics port
+map:
+  - addon_config:rw
 options:
-  router: null
-  defaultUpstreamResolvers:
+  upstream_dns:
     - tcp-tls:one.one.one.one
     - tcp-tls:dns.google
     - https://cloudflare-dns.com/dns-query
-  bootstrapDns:
-    - upstream: tcp+udp:1.1.1.1
-  conditionalMapping: []
-
-  blackLists:
+  bootstrap_dns:
+    - 1.1.1.1
+    - 8.8.8.8
+  deny_lists:
     - group: none
       entries: []
     - group: ads
       entries:
         - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
         - https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
-        - http://sysctl.org/cameleon/hosts
+        - https://sysctl.org/cameleon/hosts
+    - group: tracking
+      entries:
         - https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
-  clientGroupsBlock:
+  client_groups_block:
     - client: default
       groups:
         - ads
-
+        - tracking
+  conditional_mapping: []
+  client_lookup_upstream: ""
   caching:
-    minTime: "0"
-    maxTime: "0"
-    maxItemsCount: 0
-    prefetching: false
-    prefetchExpires: 2h
-    prefetchThreshold: 5
-    prefetchMaxItemsCount: 0
-    cacheTimeNegative: 30m
-
-  prometheus:
-    enabled: false
-    port: 4000
-    path: /metrics
-
+    min_time: 5m
+    max_time: 30m
+    prefetching: true
+  custom_config: false
 schema:
-  router: str
-  defaultUpstreamResolvers:
-    - str
-  bootstrapDns:
-    - upstream: str?
-      ips:
-        - str?
-  conditionalMapping:
-    - domain: str
-      ip: str
-  blackLists:
+  upstream_dns:
+    - match(^((tcp\+udp|tcp-tls):|https://)?[^ ]+$)
+  bootstrap_dns:
+    - match(^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(:[0-9]+)?|(\[)?[0-9a-fA-F:]+(\])?(:[0-9]+)?)$)
+  deny_lists:
     - group: str
       entries:
-        - str
-  clientGroupsBlock:
+        - url
+  client_groups_block:
     - client: str
       groups:
         - str
+  conditional_mapping:
+    - domain: str
+      resolvers:
+        - match(^((tcp\+udp|tcp-tls):|https://)?[^ ]+$)
+  client_lookup_upstream: match(^$|^((tcp\+udp|tcp-tls):|https://)?[^ ]+$)
   caching:
-    minTime: str
-    maxTime: str
-    maxItemsCount: int
+    min_time: str
+    max_time: str
     prefetching: bool
-    prefetchExpires: str
-    prefetchThreshold: int
-    prefetchMaxItemsCount: int
-    cacheTimeNegative: str
-  prometheus:
-    enabled: bool
-    port: int
-    path: str
+  custom_config: bool
