@@ -1,33 +1,90 @@
 ---
 configuration:
-  router:
-    name: Router IP Address
-    description: Configure a DNS server for client lookup, typically your router. Blocky uses reverse DNS (rDNS) to identify client names.
+  upstream_dns:
+    name: Upstream DNS Servers
+    description: >-
+      Upstream DNS resolvers. At least one required. Supports plain DNS (e.g., 1.1.1.1),
+      DoH (https://cloudflare-dns.com/dns-query), and DoT (tcp-tls:dns.google).
 
-  defaultUpstreamResolvers:
-    name: Default DNS resolvers
-    description: Specify external DNS resolvers for query resolution. Supported protocols include UDP/TCP (tcp+udp), DNS over HTTPS (https), and DNS over TLS (tcp-tls).
-
-  bootstrapDns:
+  bootstrap_dns:
     name: Bootstrap DNS Servers
-    description: Define DNS servers for resolving blacklist URLs and upstream DNS servers by hostname. These are used if no system DNS resolver is configured or to encrypt bootstrap queries. Specify just the upstream for IP-based upstreams, omitting the ips field.
+    description: >-
+      DNS servers used to resolve DoH/DoT upstream hostnames and block list domains.
+      MUST be plain IP addresses only (e.g., 1.1.1.1, 8.8.8.8) or IP:port format.
+      DoH/DoT URLs are NOT supported for bootstrap. Defaults to common public DNS providers.
 
-  conditionalMapping:
-    name: Domain-Specific DNS Resolvers
-    description: Redirect DNS queries for specific domains (and their subdomains) to designated DNS resolvers. Useful for routing local network queries to your router, as it can map hostnames to IP addresses within your network.
+  deny_lists:
+    name: DNS Block Lists
+    description: >-
+      Block list groups for DNS filtering. Each group has a name (e.g., ads, tracking)
+      and list of block list URLs. Assign groups to clients below.
 
-  blackLists:
-    name: Blacklist Groups and Sources
-    description: Configure groups of external blacklists to block domains or IPs (e.g., ads, malware). Supports Hosts format, plain domain lists, and regex patterns. Use DNS sinkholing to block queries, checking request domains, response IPs, and CNAME records against these blacklists. Include whitelists to prevent over-blocking.
+  client_groups_block:
+    name: Client Group Blocking Assignments
+    description: >-
+      Assign block list groups to client groups. Use "default" for all clients,
+      or define custom client groups in advanced configuration.
 
-  clientGroupsBlock:
-    name: Client-Specific Blocking Groups
-    description: Assign blocking groups to specific network clients. Use client names, IPs, FQDNs, or CIDR notations for identification. Clients are assigned to the default group if no specific group is set. Blocky resolves FQDNs to apply group settings based on IP matches.
+  conditional_mapping:
+    name: Conditional DNS Mapping
+    description: >-
+      Route DNS queries for specific domains to designated DNS resolvers. Useful for
+      resolving local network hostnames (e.g., router at fritz.box, NAS at nas.local).
+      Enter one resolver per line; the add-on will convert them into the comma-separated
+      format Blocky expects.
+
+      Resolver entries support IPs, tcp+udp://, tcp-tls:, and https:// formats. Use "."
+      as domain to match all unqualified hostnames (domains without dots).
+
+      Example: domain "fritz.box" with resolver "192.168.178.1" routes all *.fritz.box
+      queries to your router's DNS server.
+
+  client_lookup_upstream:
+    name: Client Name Lookup DNS Server
+    description: >-
+      Optional DNS server for reverse DNS lookups to resolve user-friendly client names
+      from IP addresses. Typically set to your router's IP (e.g., 192.168.1.1).
+
+      When configured, Blocky uses reverse DNS to identify clients by name instead of IP,
+      which is useful for client-specific blocking rules and logging.
+
+      Supports plain DNS (e.g., 192.168.1.1), DoH (https://...), DoT (tcp-tls:...),
+      and tcp+udp: formats. Leave empty to disable client name lookup.
+
+      Advanced features (singleNameOrder, custom client name mapping) are available
+      via Custom Configuration mode.
 
   caching:
-    name: Caching
-    description: Configure DNS caching settings. Blocky caches DNS responses according to their TTL values to reduce traffic and improve response times by serving results from cache.
+    name: DNS Cache Configuration
+    description: >-
+      Configure DNS response caching behavior. Caching improves performance
+      by storing DNS query results. Use time suffixes: s (seconds), m (minutes), h (hours).
 
-network:
-  53/udp: UDP port for DNS requests.
-  53/tcp: TCP port for DNS requests.
+  caching.min_time:
+    name: Minimum Cache Time
+    description: >-
+      Minimum duration to cache DNS responses, overriding shorter TTLs from upstream.
+      Format: 5s, 5m, 1h. Default: 5m. Lower values mean fresher data but more queries.
+
+  caching.max_time:
+    name: Maximum Cache Time
+    description: >-
+      Maximum duration to cache DNS responses, overriding longer TTLs from upstream.
+      Format: 5s, 5m, 1h. Default: 30m. Higher values reduce queries but may cache stale data.
+
+  caching.prefetching:
+    name: Enable Prefetching
+    description: >-
+      Automatically refresh cache for frequently queried domains before expiration.
+      Improves response times for popular domains. Recommended: enabled (default).
+
+  custom_config:
+    name: Advanced - Custom Configuration
+    description: >-
+      ⚠️ IMPORTANT: When enabled, ALL UI options above are completely ignored!
+
+      Enable this to manually edit the configuration file at addon_config/config.yml.
+      The config file will not be regenerated from UI options on restart, allowing you
+      to use advanced Blocky features not exposed in the UI.
+
+      Toggle OFF to return to UI-driven configuration (will regenerate config on next restart).

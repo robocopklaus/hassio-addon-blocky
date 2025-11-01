@@ -1,0 +1,25 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test/
+.pytest_cache/
+
+# Local config
+config.local.yaml
+secrets.yaml
+
+# JavaScript/TypeScript deps
+node_modules/

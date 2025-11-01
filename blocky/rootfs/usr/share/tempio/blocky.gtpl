@@ -1,78 +1,70 @@
-# Blocky Configuration Template
-# This template dynamically generates the Blocky configuration based on user inputs.
+# Blocky Configuration
+# Generated from Home Assistant add-on options
+# Reference: https://0xerr0r.github.io/blocky/latest/configuration/
+#
+# IMPORTANT: To edit this file directly, enable "Custom Configuration" in the add-on UI.
+# When custom config is disabled, this file is regenerated on every restart.
 
-## Upstream DNS Resolvers Configuration
-upstream:
-  default:
-  {{- range .defaultUpstreamResolvers }}
-    - {{ . }}
-  {{- end }}
-
-## Bootstrap DNS Servers
-# Used for resolving upstream DoH and DoT servers by hostname and blacklist URLs.
-bootstrapDns:
-{{- range .bootstrapDns }}
-{{- if .upstream }}
-  - upstream: {{ .upstream }}
-  {{- if .ips }}
-    ips:
-    {{- range .ips }}
+# Upstream DNS servers
+upstreams:
+  groups:
+    default:
+    {{- range .upstream_dns }}
       - {{ . }}
     {{- end }}
-  {{- end }}
+
+# Bootstrap DNS servers (used to resolve DoH/DoT upstream hostnames)
+{{- if .bootstrap_dns }}
+bootstrapDns:
+{{- range .bootstrap_dns }}
+  - upstream: {{ . }}
 {{- end }}
 {{- end }}
 
-## Conditional DNS Mapping
-# Redirect DNS queries for specific domains to designated DNS resolvers.
-conditional:
-  mapping:
-  {{- range .conditionalMapping }}
-    {{ .domain }}: {{ .ip }}
-  {{- end }}
-
-## Client Lookup Configuration
-# Defines the upstream DNS server for reverse DNS lookups, typically the router.
-clientLookup:
-  upstream: tcp+udp:{{ .router }}
-
-## Blocking Configuration
-# Configures blacklists and blocking groups per client.
+# DNS Blocking
+{{- if .deny_lists }}
 blocking:
-  blackLists:
-  {{- range .blackLists }}
+  denylists:
+  {{- range .deny_lists }}
     {{ .group }}:
     {{- range .entries }}
       - {{ . }}
     {{- end }}
   {{- end }}
-
   clientGroupsBlock:
-  {{- range .clientGroupsBlock }}
+  {{- range .client_groups_block }}
     {{ .client }}:
     {{- range .groups }}
       - {{ . }}
     {{- end }}
   {{- end }}
-
-## Caching Configuration
-caching:
-  minTime: {{ .caching.minTime }}
-  maxTime: {{ .caching.maxTime }}
-  maxItemsCount: {{ .caching.maxItemsCount }}
-  prefetching: {{ .caching.prefetching }}
-  prefetchExpires: {{ .caching.prefetchExpires }}
-  prefetchThreshold: {{ .caching.prefetchThreshold }}
-  prefetchMaxItemsCount: {{ .caching.prefetchMaxItemsCount }}
-  cacheTimeNegative: {{ .caching.cacheTimeNegative }}
-
-## Prometheus Metrics Configuration
-{{- if .prometheus.enabled }}
-# Enable HTTP listener for Prometheus metrics endpoint
-port: {{ .prometheus.port }}
-
-# Prometheus metrics endpoint configuration
-prometheus:
-  enable: true
-  path: {{ .prometheus.path }}
 {{- end }}
+
+# Conditional DNS Resolution
+{{- if and .conditional_mapping (gt (len .conditional_mapping) 0) }}
+conditional:
+  mapping:
+{{- range .conditional_mapping }}
+{{- $domain := .domain }}
+{{- $resolvers := .resolvers }}
+{{- if and $domain (gt (len $resolvers) 0) }}
+    {{ $domain }}:{{- range $idx, $resolver := $resolvers }}{{- if eq $idx 0 }} {{ $resolver }}{{ else }},{{ $resolver }}{{ end }}{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+# Client Name Lookup
+{{- if .client_lookup_upstream }}
+clientLookup:
+  upstream: {{ .client_lookup_upstream }}
+{{- end }}
+
+# DNS Caching
+caching:
+  minTime: {{ .caching.min_time }}
+  maxTime: {{ .caching.max_time }}
+  prefetching: {{ .caching.prefetching }}
+
+ports:
+  http:
+    - 4000
