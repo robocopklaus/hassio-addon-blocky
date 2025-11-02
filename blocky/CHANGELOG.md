@@ -1,3 +1,61 @@
+## 1.0.0 (2025-11-02)
+
+### ⚠ BREAKING CHANGES
+
+* Complete configuration schema overhaul for 1.0.0 release
+
+Configuration Changes:
+  - Rename all options to snake_case (router → client_lookup_upstream, etc.)
+  - Simplify bootstrap_dns structure (object format → simple IP list)
+  - Restructure conditional_mapping (ip field → resolvers array)
+  - Remove Prometheus config from UI (hardcoded to port 4000)
+  - Move config file location (/etc/blocky.yaml → /etc/blocky/config.yml)
+
+Features:
+  - Add custom_config mode for direct Blocky configuration editing
+  - Add configuration persistence at /addon_config/ for user access
+  - Add pre-flight validation and health checks
+  - Add comprehensive English translations with detailed descriptions
+  - Add caching enabled by default (min: 5m, max: 30m)
+  - Add "tracking" deny list group to defaults
+
+Technical Improvements:
+  - Change Blocky installation from Alpine APK to GitHub release binary
+  - Upgrade Blocky to v0.27.0 with SHA256 verification
+  - Replace Dependabot with Renovate Bot for dependency management
+  - Add semantic-release workflow for automated versioning
+  - Add multi-arch builds with proper manifest creation
+  - Add health check using blocky blocking status
+  - Remove i386 architecture support
+  - Remove AppArmor profile
+
+Documentation:
+  - Add comprehensive CHANGELOG.md with migration guide
+  - Add RELEASE_NOTES_1.0.0.md for GitHub Release
+  - Add CLAUDE.md for AI assistant project guidance
+  - Add LICENSE file (MIT)
+  - Expand README.md (79 → 183 lines) with installation and troubleshooting
+  - Simplify DOCS.md (187 → 35 lines) focusing on essentials
+
+CI/CD:
+  - Replace builder.yaml, lint.yaml with release.yml workflow
+  - Add semantic-release integration
+  - Add manual workflow dispatch with dry-run support
+
+See CHANGELOG.md for complete migration guide from 0.3.0 to 1.0.0.
+
+### Features
+
+* add caching configuration support ([ac3cf6e](https://github.com/robocopklaus/hassio-addon-blocky/commit/ac3cf6e1f0347b823173671003fedc278b05636f))
+* add Prometheus metrics support and update version to 0.3.0 ([#43](https://github.com/robocopklaus/hassio-addon-blocky/issues/43)) ([cf9f5d3](https://github.com/robocopklaus/hassio-addon-blocky/commit/cf9f5d3c41dc8ba6d5c206da506693f724ba04c8))
+* add script to update Blocky configuration version ([#46](https://github.com/robocopklaus/hassio-addon-blocky/issues/46)) ([a417032](https://github.com/robocopklaus/hassio-addon-blocky/commit/a41703294cf8d8585a0cce732a698b08b5ce5c83))
+* release v1.0.0 with custom config mode and breaking changes ([#45](https://github.com/robocopklaus/hassio-addon-blocky/issues/45)) ([c974cf7](https://github.com/robocopklaus/hassio-addon-blocky/commit/c974cf7cf0e892b0a1955cf6c76a764be423e485))
+
+### Bug Fixes
+
+* update blocky to 0.24 ([c388284](https://github.com/robocopklaus/hassio-addon-blocky/commit/c3882848876ac8c2852b7a71e47d3c52da113742))
+* update regex in renovate.json for blocky dependency matching ([#40](https://github.com/robocopklaus/hassio-addon-blocky/issues/40)) ([583a09e](https://github.com/robocopklaus/hassio-addon-blocky/commit/583a09e98bb8a01ade3eb54cf6b107c5909a2624))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
