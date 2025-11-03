@@ -22,56 +22,147 @@ ports_description:
 map:
   - addon_config:rw
 options:
-  upstream_dns:
-    - tcp-tls:one.one.one.one
-    - tcp-tls:dns.google
-    - https://cloudflare-dns.com/dns-query
-  bootstrap_dns:
-    - 1.1.1.1
-    - 8.8.8.8
-  deny_lists:
-    - group: none
-      entries: []
-    - group: ads
-      entries:
-        - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-        - https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
-        - https://sysctl.org/cameleon/hosts
-    - group: tracking
-      entries:
-        - https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
-  client_groups_block:
-    - client: default
-      groups:
-        - ads
-        - tracking
-  conditional_mapping: []
-  client_lookup_upstream: ""
+  upstreams:
+    groups:
+      - name: default
+        resolvers:
+          - tcp-tls:one.one.one.one
+          - tcp-tls:dns.google
+          - https://cloudflare-dns.com/dns-query
+    init_strategy: blocking
+    strategy: parallel_best
+    timeout: 2s
+  bootstrap:
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+  filtering:
+    query_types: []
+  fqdn_only:
+    enable: false
+  custom_dns:
+    mapping: []
+    rewrite: []
+    custom_ttl: 1h
+    filter_unmapped_types: true
+  conditional:
+    rewrite: []
+    mapping: []
+    fallback_upstream: false
+  client_lookup:
+    upstream: ""
+    single_name_order: []
+    clients: []
+  blocking:
+    denylists:
+      - name: ads
+        sources:
+          - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+    allowlists: []
+    client_groups_block:
+      - name: default
+        lists:
+          - ads
+    block_type: zeroIp
+    block_ttl: 6h
   caching:
-    min_time: 5m
-    max_time: 30m
-    prefetching: true
+    min_time: 0m
+    max_time: 0m
+    prefetching: false
+    cache_time_negative: 30m
+  redis:
+    address: ""
+    username: ""
+    password: ""
+    database: 0
+    required: false
+    connection_attempts: 3
+    connection_cooldown: 1s
+  prometheus:
+    enable: false
+    path: /metrics
+  log:
+    level: info
+    timestamp: true
+    privacy: false
   custom_config: false
 schema:
-  upstream_dns:
-    - match(^((tcp\+udp|tcp-tls):|https://)?[^ ]+$)
-  bootstrap_dns:
-    - match(^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(:[0-9]+)?|(\[)?[0-9a-fA-F:]+(\])?(:[0-9]+)?)$)
-  deny_lists:
-    - group: str
-      entries:
-        - url
-  client_groups_block:
-    - client: str
-      groups:
-        - str
-  conditional_mapping:
-    - domain: str
-      resolvers:
-        - match(^((tcp\+udp|tcp-tls):|https://)?[^ ]+$)
-  client_lookup_upstream: match(^$|^((tcp\+udp|tcp-tls):|https://)?[^ ]+$)
+  upstreams:
+    groups:
+      - name: str
+        resolvers:
+          - str
+    init_strategy: list(blocking|failOnError|fast)?
+    strategy: list(parallel_best|random|strict)?
+    timeout: str?
+    user_agent: str?
+  bootstrap:
+    dns:
+      - str
+  filtering:
+    query_types:
+      - str
+  fqdn_only:
+    enable: bool?
+  custom_dns:
+    mapping:
+      - hostname: str
+        ips: str
+    rewrite:
+      - source: str
+        target: str
+    custom_ttl: str?
+    filter_unmapped_types: bool?
+  conditional:
+    rewrite:
+      - source: str
+        target: str
+    mapping:
+      - domain: str
+        resolvers:
+          - str
+    fallback_upstream: bool?
+  client_lookup:
+    upstream: str?
+    single_name_order:
+      - match(^[1-9][0-9]*$)
+    clients:
+      - name: str
+        addresses:
+          - str
+  blocking:
+    denylists:
+      - name: str
+        sources:
+          - str
+    allowlists:
+      - name: str
+        sources:
+          - str
+    client_groups_block:
+      - name: str
+        lists:
+          - str
+    block_type: list(zeroIp|nxDomain)?
+    block_ttl: str?
   caching:
-    min_time: str
-    max_time: str
-    prefetching: bool
-  custom_config: bool
+    min_time: str?
+    max_time: str?
+    prefetching: bool?
+    cache_time_negative: str?
+  redis:
+    address: str?
+    username: str?
+    password: password?
+    database: int?
+    required: bool?
+    connection_attempts: int?
+    connection_cooldown: str?
+  prometheus:
+    enable: bool?
+    path: str?
+  log:
+    level: list(trace|debug|info|warn|error)?
+    timestamp: bool?
+    privacy: bool?
+  custom_config: bool?

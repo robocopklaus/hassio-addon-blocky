@@ -28,10 +28,6 @@ if [ ! -s "${CONFIG_FILE}" ]; then
 fi
 
 bashio::log.info "Pre-flight checks passed"
-bashio::log.info "Effective Blocky configuration:"
-while IFS= read -r line; do
-    bashio::log.info "  ${line}"
-done < "${CONFIG_FILE}"
 bashio::log.info "Starting Blocky..."
 
 # Add configuration file

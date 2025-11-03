@@ -1,69 +1,354 @@
-## 1.0.0 (2025-11-02)
-
-### ⚠ BREAKING CHANGES
-
-* Complete configuration schema overhaul for 1.0.0 release
-
-Configuration Changes:
-  - Rename all options to snake_case (router → client_lookup_upstream, etc.)
-  - Simplify bootstrap_dns structure (object format → simple IP list)
-  - Restructure conditional_mapping (ip field → resolvers array)
-  - Remove Prometheus config from UI (hardcoded to port 4000)
-  - Move config file location (/etc/blocky.yaml → /etc/blocky/config.yml)
-
-Features:
-  - Add custom_config mode for direct Blocky configuration editing
-  - Add configuration persistence at /addon_config/ for user access
-  - Add pre-flight validation and health checks
-  - Add comprehensive English translations with detailed descriptions
-  - Add caching enabled by default (min: 5m, max: 30m)
-  - Add "tracking" deny list group to defaults
-
-Technical Improvements:
-  - Change Blocky installation from Alpine APK to GitHub release binary
-  - Upgrade Blocky to v0.27.0 with SHA256 verification
-  - Replace Dependabot with Renovate Bot for dependency management
-  - Add semantic-release workflow for automated versioning
-  - Add multi-arch builds with proper manifest creation
-  - Add health check using blocky blocking status
-  - Remove i386 architecture support
-  - Remove AppArmor profile
-
-Documentation:
-  - Add comprehensive CHANGELOG.md with migration guide
-  - Add RELEASE_NOTES_1.0.0.md for GitHub Release
-  - Add CLAUDE.md for AI assistant project guidance
-  - Add LICENSE file (MIT)
-  - Expand README.md (79 → 183 lines) with installation and troubleshooting
-  - Simplify DOCS.md (187 → 35 lines) focusing on essentials
-
-CI/CD:
-  - Replace builder.yaml, lint.yaml with release.yml workflow
-  - Add semantic-release integration
-  - Add manual workflow dispatch with dry-run support
-
-See CHANGELOG.md for complete migration guide from 0.3.0 to 1.0.0.
-
-### Features
-
-* add caching configuration support ([ac3cf6e](https://github.com/robocopklaus/hassio-addon-blocky/commit/ac3cf6e1f0347b823173671003fedc278b05636f))
-* add Prometheus metrics support and update version to 0.3.0 ([#43](https://github.com/robocopklaus/hassio-addon-blocky/issues/43)) ([cf9f5d3](https://github.com/robocopklaus/hassio-addon-blocky/commit/cf9f5d3c41dc8ba6d5c206da506693f724ba04c8))
-* add script to update Blocky configuration version ([#46](https://github.com/robocopklaus/hassio-addon-blocky/issues/46)) ([a417032](https://github.com/robocopklaus/hassio-addon-blocky/commit/a41703294cf8d8585a0cce732a698b08b5ce5c83))
-* release v1.0.0 with custom config mode and breaking changes ([#45](https://github.com/robocopklaus/hassio-addon-blocky/issues/45)) ([c974cf7](https://github.com/robocopklaus/hassio-addon-blocky/commit/c974cf7cf0e892b0a1955cf6c76a764be423e485))
-
-### Bug Fixes
-
-* update blocky to 0.24 ([c388284](https://github.com/robocopklaus/hassio-addon-blocky/commit/c3882848876ac8c2852b7a71e47d3c52da113742))
-* update regex in renovate.json for blocky dependency matching ([#40](https://github.com/robocopklaus/hassio-addon-blocky/issues/40)) ([583a09e](https://github.com/robocopklaus/hassio-addon-blocky/commit/583a09e98bb8a01ade3eb54cf6b107c5909a2624))
-
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## 2.0.0 (2025-11-04)
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### 🎉 Automatic Migration from v1.0.0
 
-## [1.0.0] - Unreleased
+**Good news!** If you're upgrading from v1.0.0, your configuration will be **automatically converted** to the new format. No manual migration required!
+
+- ✅ **Zero downtime** - Add-on will start successfully with your existing settings
+- ✅ **Zero configuration loss** - All your settings are preserved
+- ✅ **Zero manual work** - Migration happens automatically during startup
+- ⚠️ **Temporary compatibility** - Old configuration format will be supported for a transition period
+
+When you upgrade:
+1. The add-on detects your v1.0.0 configuration format
+2. Automatically converts it to v2.0.0 format during startup
+3. DNS service continues working with all your existing settings
+4. You'll see a warning in logs: "Detected v1.0.0 configuration format - Automatically converting..."
+
+**Recommendation**: When convenient, reconfigure via the Home Assistant UI to access new v2.0.0 features and remove the compatibility layer.
+
+### Added
+
+#### Enhanced Configuration Structure
+
+The configuration schema has been restructured to a cleaner, more organized nested format that better aligns with Blocky's upstream configuration:
+
+**Upstream DNS** - Now organized in groups with advanced strategies:
+```yaml
+# v2.0.0 format
+upstreams:
+  groups:
+    - name: default
+      resolvers:
+        - tcp-tls:one.one.one.one
+  init_strategy: blocking  # NEW: blocking|failOnError|fast
+  strategy: parallel_best   # NEW: parallel_best|random|strict
+  timeout: 2s               # NEW: configurable timeout
+```
+
+**Blocking & Filtering** - Consolidated under `blocking` namespace:
+```yaml
+# v2.0.0 format
+blocking:
+  denylists:             # Renamed from deny_lists
+    - name: ads          # Renamed from group
+      sources:           # Renamed from entries
+        - https://...
+  allowlists:            # NEW: whitelist functionality
+    - name: exceptions
+      sources: []
+  client_groups_block:   # Nested under blocking
+    - name: default      # Renamed from client
+      lists:             # Renamed from groups
+        - ads
+  block_type: zeroIp     # NEW: zeroIp or nxDomain
+  block_ttl: 6h          # NEW: configurable TTL
+```
+
+**Client Lookup** - Enhanced with name ordering and static mappings:
+```yaml
+# v2.0.0 format
+client_lookup:
+  upstream: "192.168.1.1"       # Was client_lookup_upstream
+  single_name_order: []         # NEW: priority for multiple names
+  clients: []                   # NEW: static client name mappings
+```
+
+**Conditional DNS** - Nested with rewriting support:
+```yaml
+# v2.0.0 format
+conditional:
+  mapping:                      # Was conditional_mapping
+    - domain: fritz.box
+      resolvers: ["192.168.178.1"]
+  rewrite: []                   # NEW: domain rewriting
+  fallback_upstream: false      # NEW: fallback behavior
+```
+
+**Bootstrap DNS** - Cleaner nested structure:
+```yaml
+# v2.0.0 format
+bootstrap:
+  dns:                          # Was bootstrap_dns
+    - 1.1.1.1
+```
+
+#### New Features
+
+**Query Filtering**
+- Drop specific DNS query types (e.g., AAAA for IPv6)
+- Useful for forcing IPv4 or filtering unwanted query types
+
+**FQDN-Only Mode**
+- Restrict resolution to fully qualified domain names only
+- Prevents single-label hostname queries
+
+**Custom DNS**
+- Static hostname-to-IP mappings for local network
+- Domain rewriting rules
+- Configurable TTL for custom entries
+- Filter unmapped query types
+
+**Redis Integration**
+- Distributed cache synchronization across multiple instances
+- Configurable connection parameters
+- Optional or required operation modes
+
+**Enhanced Logging**
+- Configurable log levels: trace, debug, info, warn, error
+- Timestamp control
+- Privacy mode to obfuscate sensitive data
+
+**Prometheus Controls**
+- Enable/disable metrics endpoint
+- Custom metrics path configuration
+
+**Upstream Enhancements**
+- Multiple resolution strategies (parallel_best, random, strict)
+- Configurable init strategy (blocking, failOnError, fast)
+- Timeout configuration
+- Custom User-Agent for DoH requests
+
+### Changed
+
+#### Default Values
+
+⚠️ **IMPORTANT**: Caching defaults have changed in v2.0.0:
+
+| Setting | v1.0.0 Default | v2.0.0 Default | Migration Behavior |
+|---------|----------------|----------------|-------------------|
+| `min_time` | `5m` | `0m` | **Preserved** as `5m` for v1.0.0 users |
+| `max_time` | `30m` | `0m` | **Preserved** as `30m` for v1.0.0 users |
+| `prefetching` | `true` | `false` | **Preserved** as `true` for v1.0.0 users |
+
+**For v1.0.0 users upgrading**: Your caching settings are automatically preserved to maintain performance.
+
+**For new v2.0.0 installations**: Caching is disabled by default (requires explicit configuration).
+
+### BREAKING CHANGES (Automatically Handled)
+
+#### Configuration Option Renaming
+
+The following changes are **automatically migrated** for v1.0.0 users:
+
+| v1.0.0 Option | v2.0.0 Option | Migration |
+|---------------|---------------|-----------|
+| `upstream_dns` (array) | `upstreams.groups` (nested) | ✅ Automatic |
+| `bootstrap_dns` (array) | `bootstrap.dns` (nested) | ✅ Automatic |
+| `deny_lists[].group` | `blocking.denylists[].name` | ✅ Automatic |
+| `deny_lists[].entries` | `blocking.denylists[].sources` | ✅ Automatic |
+| `client_groups_block[].client` | `blocking.client_groups_block[].name` | ✅ Automatic |
+| `client_groups_block[].groups` | `blocking.client_groups_block[].lists` | ✅ Automatic |
+| `conditional_mapping` | `conditional.mapping` | ✅ Automatic |
+| `client_lookup_upstream` | `client_lookup.upstream` | ✅ Automatic |
+
+#### Configuration Mapping Reference
+
+For users who want to manually reconfigure in the UI (recommended when convenient):
+
+**Upstream DNS**
+```yaml
+# v1.0.0
+upstream_dns:
+  - tcp-tls:one.one.one.one
+
+# v2.0.0
+upstreams:
+  groups:
+    - name: default
+      resolvers:
+        - tcp-tls:one.one.one.one
+  init_strategy: blocking
+  strategy: parallel_best
+```
+
+**Bootstrap DNS**
+```yaml
+# v1.0.0
+bootstrap_dns:
+  - 1.1.1.1
+
+# v2.0.0
+bootstrap:
+  dns:
+    - 1.1.1.1
+```
+
+**Deny Lists**
+```yaml
+# v1.0.0
+deny_lists:
+  - group: ads
+    entries:
+      - https://example.com/hosts
+
+# v2.0.0
+blocking:
+  denylists:
+    - name: ads
+      sources:
+        - https://example.com/hosts
+  allowlists: []
+  client_groups_block:
+    - name: default
+      lists:
+        - ads
+  block_type: zeroIp
+  block_ttl: 6h
+```
+
+**Client Groups**
+```yaml
+# v1.0.0
+client_groups_block:
+  - client: default
+    groups:
+      - ads
+
+# v2.0.0 (nested under blocking)
+blocking:
+  client_groups_block:
+    - name: default
+      lists:
+        - ads
+```
+
+**Conditional Mapping**
+```yaml
+# v1.0.0
+conditional_mapping:
+  - domain: fritz.box
+    resolvers:
+      - 192.168.178.1
+
+# v2.0.0
+conditional:
+  mapping:
+    - domain: fritz.box
+      resolvers:
+        - 192.168.178.1
+  rewrite: []
+  fallback_upstream: false
+```
+
+**Client Lookup**
+```yaml
+# v1.0.0
+client_lookup_upstream: "192.168.1.1"
+
+# v2.0.0
+client_lookup:
+  upstream: "192.168.1.1"
+  single_name_order: []
+  clients: []
+```
+
+### Migration Verification
+
+After upgrading to v2.0.0:
+
+1. **Check logs** for the migration message:
+   ```
+   ════════════════════════════════════════════════════════
+   Detected v1.0.0 configuration format
+   Automatically converting to v2.0.0 format...
+   Please reconfigure via UI when convenient to access new features
+   ════════════════════════════════════════════════════════
+   ```
+
+2. **Verify DNS is working**:
+   ```bash
+   nslookup google.com <addon-ip>
+   ```
+
+3. **Check metrics** (if using Prometheus):
+   ```bash
+   curl http://<addon-ip>:4000/metrics
+   ```
+
+4. **When ready**, reconfigure via Home Assistant UI:
+   - Open the Blocky add-on configuration
+   - You'll see the new v2.0.0 schema with defaults
+   - Re-enter your settings using the new format
+   - Save and restart
+
+### Troubleshooting
+
+**Add-on fails to start after upgrade**
+- Check logs for specific error messages
+- Verify your v1.0.0 configuration was valid
+- Report issue at https://github.com/robocopklaus/hassio-addon-blocky/issues
+
+**DNS queries not being blocked**
+- Verify your deny lists migrated correctly in logs
+- Check that client group mappings are preserved
+- Review configuration file at `/addon_config/<repository>_blocky/config.yml`
+
+**Performance degradation**
+- Check caching settings were preserved (should show `min_time: 5m`, `max_time: 30m`)
+- If caching is disabled, re-enable in configuration
+
+### Rollback Procedure
+
+If you encounter issues, you can rollback to v1.0.0:
+
+1. Stop the Blocky add-on
+2. Go to Add-on Store → Blocky → version dropdown (⋮ menu)
+3. Select version `1.0.0`
+4. Start the add-on
+
+Your v1.0.0 configuration will still be present and will work.
+
+## 1.0.0 (2025-11-02)
+
+### Added
+
+#### Custom Configuration Mode
+
+- New `custom_config` boolean option in add-on configuration
+- When enabled, allows direct editing of Blocky configuration file at `/addon_config/<repository>_blocky/config.yml`
+- Enables access to advanced Blocky features not exposed in the UI
+- UI configuration options are ignored when custom mode is active
+
+#### Default Configuration Improvements
+
+- DNS caching now enabled by default (min: 5 minutes, max: 30 minutes, with prefetching)
+- New "tracking" deny list group added to defaults
+- Sensible bootstrap DNS defaults (1.1.1.1, 8.8.8.8)
+
+#### Improved User Experience
+
+- Configuration file now persisted and accessible for inspection
+- Better error messages and logging for easier troubleshooting
+- Complete English translations with detailed descriptions for all settings
+- Health checks for monitoring addon status
+
+### Changed
+
+- **Blocky upgraded** to v0.27.0
+- **Documentation expanded** with installation instructions and troubleshooting guide
+
+### Removed
+
+- **AppArmor profile** - container now runs with standard security
+- **i386 architecture support** - no longer available
+- **Prometheus UI configuration options** - metrics now always enabled (external port still configurable)
+
+### Fixed
+
+- License metadata corrected from "Apache License 2.0" to "MIT" (matching LICENSE file)
 
 ### BREAKING CHANGES
 
@@ -72,7 +357,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 All configuration options have been renamed to follow snake_case convention. **Existing configurations will not work and must be migrated.**
 
 | Old Option (0.3.0) | New Option (1.0.0) |
-|--------------------|--------------------|
+|--------------------|-----------------------|
 | `router` | `client_lookup_upstream` |
 | `defaultUpstreamResolvers` | `upstream_dns` |
 | `bootstrapDns` | `bootstrap_dns` |
@@ -120,10 +405,10 @@ All configuration options have been renamed to follow snake_case convention. **E
 
 #### Prometheus Configuration Changes
 
-- Prometheus configuration options removed from Home Assistant UI
-- HTTP API port hardcoded to `4000` and always exposed
-- Metrics endpoint: `http://<addon-ip>:4000/metrics`
-- **Impact**: Users who customized Prometheus port or path must use custom configuration mode
+- Prometheus metrics now always enabled (cannot be disabled via UI)
+- Internal container port is `4000` (external port mapping still configurable via Home Assistant UI)
+- Default metrics endpoint: `http://<addon-ip>:4000/metrics`
+- **Impact**: Users who need custom Prometheus configuration (path, settings) must use custom configuration mode
 
 #### Architecture Support Changes
 
@@ -144,104 +429,6 @@ All configuration options have been renamed to follow snake_case convention. **E
 
 - `apparmor.txt` deleted - container now runs without AppArmor confinement
 - **Impact**: Different security profile (less restrictive)
-
-### Added
-
-#### Custom Configuration Mode
-
-- New `custom_config` boolean option in add-on configuration
-- When enabled, allows direct editing of Blocky configuration file
-- Configuration file location: `/addon_config/<repository>_blocky/config.yml`
-- Enables access to advanced Blocky features not exposed in the UI
-- UI configuration options ignored when custom mode is active
-
-#### Enhanced Configuration Management
-
-- Configuration file persisted for user editing and inspection
-- Automatic mode detection (custom vs. managed)
-- Pre-flight validation checks on service startup
-- Configuration logged on startup for debugging purposes
-- Health check added to Dockerfile using `blocky blocking status`
-
-#### Default Configuration Improvements
-
-- DNS caching enabled by default:
-  - `min_time`: 5 minutes
-  - `max_time`: 30 minutes
-  - `prefetching`: enabled
-- New "tracking" deny list group added to defaults
-- HTTP API port (4000) always exposed for health checks and Prometheus metrics
-- Sensible bootstrap DNS defaults (1.1.1.1, 8.8.8.8)
-
-#### Comprehensive Translations
-
-- Complete English translations with detailed descriptions
-- Multi-line help text for each configuration option
-- Clear warnings about custom config mode behavior
-
-### Changed
-
-#### Blocky Installation Method
-
-- **Changed**: Installation method from Alpine APK package to direct GitHub release binary
-- Blocky version upgraded to v0.27.0
-- SHA256 checksum verification for downloaded binaries
-- Support for exact version pinning via Renovate Bot
-- Automatic architecture detection and binary download
-
-#### Service Management Improvements
-
-- Enhanced exit code handling in finish script
-- Distinguishes between clean shutdown and crash scenarios
-- Pre-flight configuration checks before starting Blocky
-- Better error messages and logging
-- Configuration validation on startup
-
-#### CI/CD Pipeline Modernization
-
-- Replaced GitHub Dependabot with Renovate Bot for dependency management
-- New semantic-release integration for automated versioning and releases
-- Multi-architecture image builds with proper manifest creation
-- Manual workflow dispatch for controlled releases
-- Dry-run support for testing release process
-- Image scanning workflow for security
-
-#### Documentation Overhaul
-
-- `DOCS.md` simplified and focused (187 lines → 35 lines)
-- `README.md` significantly expanded with comprehensive information (79 lines → 183 lines)
-- Added installation instructions, troubleshooting guide, API usage examples
-- Added `CLAUDE.md` for AI assistant project guidance
-
-#### Build Process Improvements
-
-- Dockerfile downloads Blocky binary directly from GitHub releases
-- Checksum verification for security
-- Added OCI labels for container metadata
-- Health check using `blocky blocking status`
-- Explicit Tempio version tracking with Renovate
-
-#### Dependency Management
-
-- Configured Renovate Bot for automated dependency updates:
-  - Alpine APK packages tracking (via Repology datasource)
-  - GitHub Actions auto-updates with patch auto-merge
-  - Home Assistant base images and builder updates
-  - Tempio version tracking
-- Automatic PR creation for dependency updates
-- Scheduled checks (evenings/weekends)
-
-### Removed
-
-- **Workflows**: Deleted `builder.yaml`, `lint.yaml`, and `dependabot.yaml`
-- **AppArmor**: Removed `apparmor.txt` security profile
-- **Architecture**: Dropped i386 support
-- **UI Options**: Prometheus configuration removed from Home Assistant UI
-- **Incomplete Documentation**: Removed partial Prometheus/Grafana integration section from DOCS.md
-
-### Fixed
-
-- License metadata corrected from "Apache License 2.0" to "MIT" (matching LICENSE file)
 
 ---
 
@@ -315,11 +502,13 @@ conditional_mapping:
 
 If you previously configured Prometheus settings:
 
-- Prometheus endpoint is now **always available** at port 4000
+- Prometheus metrics are now **always enabled** (cannot be disabled)
+- Internal container port: `4000` (external port mapping configurable via Home Assistant UI, defaults to `4000`)
 - Default path: `/metrics`
-- URL: `http://<addon-ip>:4000/metrics`
+- Default URL: `http://<addon-ip>:4000/metrics`
+- You can change the external port mapping in Configuration → Network (e.g., map to `4001`)
 
-If you need custom Prometheus configuration:
+If you need custom Prometheus configuration (custom path, settings):
 1. Enable `custom_config` option in add-on settings
 2. Edit `/addon_config/<repository>_blocky/config.yml` directly
 3. Add custom `prometheus` section following [Blocky documentation](https://0xerr0r.github.io/blocky/latest/configuration/)
@@ -387,9 +576,10 @@ If you prefer to maintain full control or use advanced Blocky features:
 - Review logs for upstream connection errors
 
 **Metrics endpoint not accessible:**
-- Verify port 4000 is exposed (should be automatic)
-- Check firewall rules
+- Verify port 4000 is exposed in addon configuration (Network section)
+- Check firewall rules on your network
 - Ensure add-on is running
+- If you changed the external port mapping, use that port instead of 4000
 
 **Need old configuration format:**
 - Downgrade to 0.3.0 (not recommended)
@@ -409,6 +599,6 @@ If you need to rollback:
 
 ---
 
-## [0.3.0] - Previous Release
+## 0.3.0
 
 See git history for previous release notes.

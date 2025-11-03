@@ -1,4 +1,5 @@
 {
+  "$comment": "Two-changelog approach: CHANGELOG.md (root) is auto-generated technical changelog for developers. blocky/CHANGELOG.md is manually maintained user-facing changelog.",
   "branches": [
     "main"
   ],
@@ -13,7 +14,7 @@
     ],
     [
       "@semantic-release/changelog",
-      { "changelogFile": "blocky/CHANGELOG.md" }
+      { "changelogFile": "CHANGELOG.md" }
     ],
     [
       "@semantic-release/exec",
@@ -23,7 +24,7 @@
       "@semantic-release/git",
       {
         "assets": [
-          "blocky/CHANGELOG.md",
+          "CHANGELOG.md",
           "blocky/config.yaml"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
