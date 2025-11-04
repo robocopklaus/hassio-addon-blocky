@@ -1,218 +1,169 @@
-# Home Assistant Add-on: Blocky
+# Blocky Add-on Documentation
 
-## Introduction
+This document provides detailed configuration reference and advanced usage examples for the Blocky Home Assistant Add-on. For installation instructions and basic usage, see [README.md](README.md).
 
-Blocky is a fast and lightweight DNS proxy and ad-blocker designed for your home network. Unlike browser-based ad-blockers, Blocky works at the DNS level, blocking ads and trackers for all devices on your network without requiring software installation on each device.
+## Configuration Reference
 
-### Key Benefits
+### Upstream DNS Servers
 
-- **Network-wide Protection**: Blocks ads and trackers for all connected devices (phones, tablets, smart TVs, IoT devices)
-- **No UI Required**: Operates as a DNS service - no web interface to manage
-- **Privacy-Focused**: Zero telemetry, no data collection, completely private
-- **High Performance**: Efficient caching, prefetching, and low memory footprint
-- **Modern DNS Protocols**: Supports DNS-over-HTTPS (DoH) and DNS-over-TLS (DoT)
-- **Local Network Integration**: Resolve local hostnames (router, NAS, etc.) alongside internet DNS
+Configure external DNS resolvers that Blocky queries after checking blocks and cache.
 
-### How It Works
+- **Groups**: Organize resolvers into named groups (e.g., `default`, `cloudflare`, `google`)
+- **Resolvers**: DNS server addresses in various formats:
+  - Standard DNS: `1.1.1.1` or `tcp+udp:8.8.8.8:53`
+  - DNS-over-TLS: `tcp-tls:one.one.one.one`
+  - DNS-over-HTTPS: `https://cloudflare-dns.com/dns-query`
+- **Strategy**: Query distribution method
+  - `parallel_best` (default): Queries 2 random resolvers, returns fastest
+  - `random`: Queries single random resolver (better privacy)
+  - `strict`: Queries resolvers sequentially in order
+- **Timeout**: Max wait time for upstream response (default: `2s`)
 
-1. Devices on your network send DNS queries to Blocky (port 53)
-2. Blocky checks queries against configured block lists
-3. Blocked domains return a null response (no connection made)
-4. Allowed queries are forwarded to upstream DNS servers (Cloudflare, Google, etc.)
-5. Responses are cached for improved performance
+### Bootstrap DNS
 
-**Note**: This add-on has no web UI. Configuration is done through Home Assistant's add-on options. Metrics are available at `http://<host>:4000` when Prometheus is enabled.
+Required when upstream DNS uses hostnames (e.g., `tcp-tls:dns.google`). Bootstrap resolvers are simple IP-based DNS servers that resolve those hostnames, breaking the circular dependency.
 
----
-
-## Installation
-
-### 1. Add Repository to Home Assistant
-
-1. Navigate to **Settings** → **Add-ons** → **Add-on Store**
-2. Click the **⋮** menu (top right) → **Repositories**
-3. Add this repository URL:
-   ```
-   https://github.com/robocopklaus/hassio-addon-blocky
-   ```
-4. Click **Add** → **Close**
-
-### 2. Install the Add-on
-
-1. Find **Blocky** in your add-on store
-2. Click on the add-on
-3. Click **Install**
-4. Wait for installation to complete
-
-### 3. Configure and Start
-
-1. Go to the **Configuration** tab
-2. Review and adjust options (see Configuration Overview below)
-3. Click **Save**
-4. Go to the **Info** tab
-5. Click **Start**
-6. Enable **Watchdog** (recommended) for automatic restart on failure
-
----
-
-## Configuration Overview
-
-This add-on provides essential configuration options through the Home Assistant UI. For detailed configuration information and all available options, see the [Blocky Configuration Reference](https://0xerr0r.github.io/blocky/latest/configuration/).
-
-### Main Configuration Options
-
-**Upstream DNS Servers** (`upstream_dns`)
-- DNS resolvers that Blocky forwards queries to
-- Supports plain DNS, DNS-over-TLS (DoT), and DNS-over-HTTPS (DoH)
-- Default: Cloudflare and Google DoT/DoH servers
-- [Full upstream docs →](https://0xerr0r.github.io/blocky/latest/configuration/#upstream)
-
-**Bootstrap DNS** (`bootstrap_dns`)
-- DNS servers used to resolve upstream DoH/DoT hostnames
-- Must be plain IP addresses only
-- Default: `1.1.1.1`, `8.8.8.8`
-- [Full bootstrap docs →](https://0xerr0r.github.io/blocky/latest/configuration/#bootstrapdns)
-
-**Custom DNS** (`custom_dns`)
-- Define custom DNS responses for local domains
-- Map hostnames to IP addresses (e.g., `printer.lan` → `192.168.1.100`)
-- Supports CNAME, domain rewriting, and custom TTL
-- [Full customDNS docs →](https://0xerr0r.github.io/blocky/latest/configuration/#custom-dns)
-
-**Blocking** (`blocking`)
-- Configure deny lists (block lists) and allow lists
-- Pre-configured with StevenBlack hosts by default
-- Assign different block lists to client groups
-- [Full blocking docs →](https://0xerr0r.github.io/blocky/latest/configuration/#blocking)
-
-**Conditional DNS** (`conditional`)
-- Route specific domains to designated resolvers
-- Essential for local network device resolution
-- Example: Route `*.fritz.box` to router at `192.168.178.1`
-- [Full conditional docs →](https://0xerr0r.github.io/blocky/latest/configuration/#conditional)
-
-**Client Lookup** (`client_lookup`)
-- Resolve client IP addresses to readable names using reverse DNS
-- Helpful for metrics and logs
-- [Full clientLookup docs →](https://0xerr0r.github.io/blocky/latest/configuration/#client-lookup)
-
-**Caching** (`caching`)
-- Configure DNS response caching behavior
-- Options for min/max cache time and prefetching
-- [Full caching docs →](https://0xerr0r.github.io/blocky/latest/configuration/#caching)
-
-**Redis Integration** (`redis`)
-- Synchronize cache across multiple Blocky instances
-- Useful for distributed deployments only
-- [Full redis docs →](https://0xerr0r.github.io/blocky/latest/configuration/#redis)
-
-**Prometheus Metrics** (`prometheus`)
-- Enable/disable Prometheus metrics endpoint
-- Default: disabled (enable to access metrics at port 4000)
-- [Full prometheus docs →](https://0xerr0r.github.io/blocky/latest/configuration/#prometheus)
-
-**Logging** (`log`)
-- Control log verbosity, timestamps, and privacy
-- Levels: trace, debug, info, warn, error
-- [Full logging docs →](https://0xerr0r.github.io/blocky/latest/configuration/#log)
-
-**Query Type Filtering** (`filtering.query_types`)
-- Drop specific DNS query types (e.g., AAAA for IPv6)
-- Useful for forcing IPv4-only resolution
-- [Full filtering docs →](https://0xerr0r.github.io/blocky/latest/configuration/#filtering)
-
-**FQDN-Only Mode** (`fqdn_only`)
-- Restrict resolution to fully qualified domain names only
-- Blocks single-word hostnames (use with caution)
-- [Full fqdnOnly docs →](https://0xerr0r.github.io/blocky/latest/configuration/#special-use-domains)
-
-### Custom Configuration Mode (Advanced)
-
-Enable `custom_config: true` to manually edit the Blocky configuration file and access all advanced features:
-
-- Per-client custom blocking rules
-- Query logging
-- Advanced allowlists (regex, per-client)
-- Response filtering
-- And much more
-
-**Configuration file location**: `/addon_config/<repository>_blocky/config.yml`
-
-**Full feature documentation**: [Blocky Configuration Reference](https://0xerr0r.github.io/blocky/latest/configuration/)
-
-⚠️ **Important**: When custom config mode is enabled, ALL Home Assistant UI options are ignored.
-
----
-
-## Network Setup Guide
-
-For Blocky to work, network devices must send DNS queries to Blocky (port 53). There are two approaches:
-
-### Option 1: Router DHCP Configuration (Recommended)
-
-Configure your router to advertise Blocky as the DNS server via DHCP. All devices automatically use Blocky without per-device configuration.
-
-**Steps** (varies by router):
-1. Access your router's admin interface
-2. Find DHCP settings (often under LAN or Network settings)
-3. Set **Primary DNS Server** to Home Assistant's IP address (e.g., `192.168.1.100`)
-4. Optional: Set **Secondary DNS Server** to a fallback (e.g., `1.1.1.1`)
-5. Save and reboot router
-6. Reconnect devices or renew DHCP leases
-
-**Common Router Interfaces**:
-- **FritzBox**: Home Network → Network → Network Settings → DNS Server
-- **Ubiquiti**: Settings → Networks → LAN → DHCP Name Server
-- **pfSense**: Services → DHCP Server → DNS Servers
-- **OpenWrt**: Network → Interfaces → LAN → DHCP Server → Advanced Settings
-
-**Verification**:
-```bash
-# On a device, check DNS server
-# macOS/Linux:
-cat /etc/resolv.conf
-
-# Windows:
-ipconfig /all
-
-# Should show Home Assistant's IP as DNS server
+**Example:**
+```yaml
+bootstrap:
+  dns:
+    - upstream: 1.1.1.1
+    - upstream: 8.8.8.8
 ```
 
-### Option 2: Manual Device Configuration
+### Blocking & Allowlists
 
-Configure DNS server on individual devices. Useful for testing or selective deployment.
+Configure domain blocking with denylists and exceptions.
 
-**macOS**:
-System Settings → Network → [Your Connection] → Details → DNS tab → Add (+) → Enter Home Assistant IP
+- **Denylists**: Named groups of blocklist sources (URLs or local files)
+- **Allowlists**: Domains to unblock (whitelist exceptions)
+- **Client Groups**: Assign which lists apply to which clients
+- **Block Type**:
+  - `zeroIp` (default): Returns 0.0.0.0 (IPv4) or :: (IPv6)
+  - `nxDomain`: Returns NXDOMAIN (domain doesn't exist)
+- **Block TTL**: How long clients cache blocked responses (default: `6h`)
 
-**Windows**:
-Control Panel → Network and Internet → Network Connections → Right-click connection → Properties → Internet Protocol Version 4 (TCP/IPv4) → Properties → Use the following DNS server addresses
+**Default lists include StevenBlack hosts, Disconnect.me ads & tracking.**
 
-**iOS/iPadOS**:
-Settings → Wi-Fi → (i) next to network → Configure DNS → Manual → Add Server → Enter Home Assistant IP
+### Custom DNS
 
-**Android**:
-Settings → Network & Internet → Wi-Fi → Long-press network → Modify network → Advanced options → IP settings → Static → DNS 1: Home Assistant IP
+Define local hostname-to-IP mappings without forwarding to upstream DNS. Blocky acts as authoritative DNS server for these entries.
 
-### Testing DNS
+**Features:**
+- Static IP assignments for local devices
+- Automatic reverse DNS (PTR records)
+- Subdomain resolution (any.prefix.hostname resolves to hostname's IP)
+- CNAME support (specify hostname instead of IP)
 
-```bash
-# Test from any device (replace 192.168.1.100 with HA IP)
-nslookup example.com 192.168.1.100
-dig @192.168.1.100 example.com
-
-# Should return IP address without errors
+**Example:**
+```yaml
+custom_dns:
+  mapping:
+    - hostname: nas.lan
+      ips: 192.168.1.100
+    - hostname: printer.lan
+      ips: 192.168.1.101
+  custom_ttl: 1h
 ```
 
----
+### Conditional DNS
 
-## Common Use Cases
+Route specific domains to designated DNS servers (split-DNS). Unlike Custom DNS which provides direct answers, Conditional DNS forwards queries to another resolver.
 
-### 1. Basic Ad-Blocking Setup
+**Use cases:**
+- Router DHCP hostnames (e.g., `*.fritz.box` → router DNS)
+- Corporate VPN domains (e.g., `*.company.internal` → VPN DNS)
+- Reverse DNS lookups (e.g., `192.168.1.in-addr.arpa` → router)
 
-Block ads and trackers network-wide with minimal configuration.
+**Special domain `.` matches all unqualified hostnames** (single-word names like `nas` or `printer`).
+
+**Example:**
+```yaml
+conditional:
+  mapping:
+    - domain: fritz.box
+      resolvers:
+        - 192.168.178.1
+    - domain: "."
+      resolvers:
+        - 192.168.1.1
+```
+
+### Caching
+
+DNS response caching reduces upstream queries and improves performance.
+
+- **Min/Max Time**: Override upstream TTL values (leave empty to respect upstream)
+- **Prefetching**: Automatically refresh popular domains before TTL expires
+- **Prefetch Threshold**: Minimum queries (within tracking window) to enable prefetch (default: 5)
+- **Max Items**: Limit total cached entries (0 = unlimited)
+- **Negative Cache Time**: Cache NXDOMAIN responses (default: `30m`, set `-1` to disable)
+- **Exclude**: Regex patterns to exclude from cache (e.g., `/.*\.lan$/` for local domains)
+
+### Query Logging
+
+Record DNS queries to various backends. **WARNING:** Logs contain sensitive network activity.
+
+**Log Types:**
+- `none` (default): Disabled
+- `csv`: Daily rotating CSV files
+- `csv-client`: Separate CSV per client
+- `console`: Output to add-on logs
+- `mysql`, `postgresql`, `timescale`: External databases
+
+**Configuration:**
+- **Target**: Directory for CSV files (e.g., `/config/query_logs`)
+- **Database**: Host, port, username, password, database name
+- **Fields**: Limit logged data (clientIP, clientName, responseReason, responseAnswer, question, duration)
+- **Retention**: Auto-delete logs older than X days (0 = keep forever)
+- **Flush Interval**: Batch write frequency (default: `30s`)
+
+### Redis Integration
+
+Synchronize cache and blocking state across multiple Blocky instances.
+
+- **Address**: Redis server endpoint (hostname:port or IP:port)
+- **Username/Password**: Authentication credentials (optional)
+- **Database**: Redis database number (0-15, default: 0)
+- **Required**: Fail startup if Redis unavailable (default: false)
+
+### Prometheus Metrics
+
+Enable monitoring endpoint at `http://[HOST]:4000/metrics`. Exposes DNS query statistics, cache performance, and blocking activity.
+
+### Client Lookup
+
+Resolve client IP addresses to friendly names using reverse DNS and static mappings.
+
+**Configuration:**
+- **Upstream**: DNS server for reverse lookups (usually router IP)
+- **Clients**: Static name-to-IP mappings
+
+### Logging
+
+- **Level**: `trace`, `debug`, `info` (default), `warn`, `error`
+- **Privacy Mode**: Obfuscate domains and IPs in logs with asterisks
+
+### Custom Config Mode
+
+Enable to use manual YAML configuration at `/addon_config/<repository>_blocky/config.yml`. All UI settings are ignored when enabled. Use for advanced Blocky features not available in UI (regex patterns, per-client rules, etc.).
+
+## Configuration Examples
+
+### Basic Home Network Setup
+
+**Goal:** Network-wide ad blocking with fast DNS resolution
 
 ```yaml
+upstreams:
+  groups:
+    - name: default
+      resolvers:
+        - tcp-tls:one.one.one.one
+        - tcp-tls:dns.google
+  strategy: parallel_best
+  timeout: 2s
+
 blocking:
   denylists:
     - name: ads
@@ -222,109 +173,168 @@ blocking:
     - name: default
       lists:
         - ads
+  block_type: zeroIp
+
+caching:
+  prefetching: true
+  prefetch_threshold: 5
 ```
 
-### 2. Local Network DNS Resolution
+### Split-DNS for Local Domains
 
-Access local devices by hostname (e.g., `http://nas.local`, `http://router.fritz.box`).
+**Goal:** Route router domains to router DNS, everything else to Cloudflare
 
 ```yaml
+upstreams:
+  groups:
+    - name: default
+      resolvers:
+        - https://cloudflare-dns.com/dns-query
+
 conditional:
   mapping:
-    - domain: "fritz.box"
+    - domain: fritz.box
       resolvers:
-        - "192.168.178.1"  # Router IP
-    - domain: "local"
-      resolvers:
-        - "192.168.1.1"  # Local DNS server
+        - 192.168.178.1
     - domain: "."  # Unqualified hostnames
       resolvers:
-        - "192.168.1.1"
-```
+        - 192.168.178.1
 
-### 3. Custom Static DNS Entries
-
-Assign static IP addresses to hostnames on your network.
-
-```yaml
 custom_dns:
   mapping:
-    - hostname: printer.lan
-      ips: 192.168.1.100
-    - hostname: nas.local
+    - hostname: homeassistant.lan
       ips: 192.168.1.50
-    - hostname: server.lan
-      ips: 192.168.1.10,2001:db8:85a3::1  # Dual-stack IPv4 + IPv6
+    - hostname: nas.lan
+      ips: 192.168.1.100
 ```
 
-### 4. Per-Device Blocking Rules (Custom Config Mode)
+### Home Assistant Automation Example
 
-Different blocking policies per device/client group. Requires custom config mode.
+Control blocking via API from Home Assistant automations:
 
 ```yaml
-# /addon_config/<repository>_blocky/config.yml
-blocking:
-  denylists:
-    ads:
-      - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-    tracking:
-      - https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
-    social:
-      - https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/social-only/hosts
-  clientGroupsBlock:
-    kids:
-      - ads
-      - tracking
-      - social
-    adults:
-      - ads
+# automation.yaml
+- alias: "Disable DNS blocking for 1 hour"
+  trigger:
+    platform: state
+    entity_id: input_boolean.allow_all_dns
+    to: "on"
+  action:
+    - service: rest_command.disable_blocky
+      data:
+        duration: "3600s"
 
-clients:
-  kids:
-    - 192.168.1.100  # Kid's iPad
-    - 192.168.1.101  # Kid's laptop
-  adults:
-    - 192.168.1.50
-    - 192.168.1.51
+# configuration.yaml
+rest_command:
+  disable_blocky:
+    url: "http://localhost:4000/api/blocking/disable"
+    method: GET
+    payload: "duration={{ duration }}"
+  enable_blocky:
+    url: "http://localhost:4000/api/blocking/enable"
+    method: GET
 ```
 
----
+### Database Query Logging
 
-## Monitoring
+**Goal:** Log all queries to MySQL for analysis
 
-When Prometheus is enabled (`prometheus.enable: true`), Blocky exposes metrics at `http://<home-assistant-ip>:4000/metrics`.
+```yaml
+query_log:
+  type: mysql
+  db_host: 192.168.1.150
+  db_port: 3306
+  db_username: blocky_user
+  db_password: !secret mysql_password
+  db_database: blocky_logs
+  log_retention_days: 30
+  fields:
+    - clientIP
+    - clientName
+    - question
+    - responseAnswer
+```
 
-**Available Metrics**:
-- DNS query count (total, by type, by response)
-- Blocked query count
-- Cache hit/miss ratio
-- Upstream response times
+## HTTP API Reference
 
-**Health Check**: `http://<home-assistant-ip>:4000/` returns JSON with Blocky status and version.
+Access API at `http://[HOST]:4000/api/`
 
-For query logging and advanced monitoring features, see the [Blocky documentation](https://0xerr0r.github.io/blocky/latest/configuration/#querylog).
+| Endpoint | Method | Parameters | Description |
+|----------|--------|------------|-------------|
+| `/blocking/status` | GET | - | Check if blocking is enabled |
+| `/blocking/enable` | GET | - | Enable blocking |
+| `/blocking/disable` | GET | `duration` (optional) | Disable blocking for duration (e.g., `30s`, `5m`, `1h`) |
+| `/query` | GET | `query`, `type` | Test DNS resolution for domain |
+| `/lists/refresh` | POST | - | Reload blocklists from sources |
 
----
+**Examples:**
+```bash
+# Check status
+curl http://homeassistant.local:4000/api/blocking/status
 
-## Support & Resources
+# Disable for 5 minutes
+curl "http://homeassistant.local:4000/api/blocking/disable?duration=5m"
 
-### Documentation
-- **Full Blocky Documentation**: [https://0xerr0r.github.io/blocky/](https://0xerr0r.github.io/blocky/)
-- **Configuration Reference**: [https://0xerr0r.github.io/blocky/latest/configuration/](https://0xerr0r.github.io/blocky/latest/configuration/)
-- **Add-on Repository**: [https://github.com/robocopklaus/hassio-addon-blocky](https://github.com/robocopklaus/hassio-addon-blocky)
+# Test resolution
+curl "http://homeassistant.local:4000/api/query?query=example.com&type=A"
+```
 
-### Getting Help
-- **Report Issues**: [GitHub Issues](https://github.com/robocopklaus/hassio-addon-blocky/issues)
-- **Upstream Blocky Issues**: [Blocky GitHub](https://github.com/0xERR0R/blocky/issues)
-- **Changelog**: See `CHANGELOG.md` for version history and migration guides
+## Performance Tuning
 
-### Contributing
-Contributions are welcome! Please submit pull requests or issues on GitHub.
+**Low-memory devices (Raspberry Pi):**
+- Reduce blocklist count
+- Set `max_items_count: 5000` for cache
+- Disable query logging
+- Disable prefetching
 
-### License
-This add-on is licensed under the MIT License. Blocky itself is also MIT licensed.
+**High-performance networks:**
+- Enable prefetching with higher threshold
+- Use `parallel_best` strategy
+- Increase cache limits
+- Use Redis for multi-instance deployments
 
----
+**Privacy-focused:**
+- Use `random` upstream strategy
+- Enable log privacy mode
+- Disable query logging
+- Use DoH/DoT upstreams exclusively
 
-**Add-on Version**: 1.0.0
-**Blocky Version**: v0.27.0
+## Troubleshooting
+
+### Verify Configuration
+
+In custom config mode, validate configuration before starting:
+```bash
+docker exec <container> blocky --config /etc/blocky/config.yml validate
+```
+
+### Check Blocklist Loading
+
+Monitor add-on logs during startup for blocklist download status and entry counts.
+
+### Test DNS Resolution
+
+```bash
+# Test from another machine
+nslookup example.com <home-assistant-ip>
+
+# Test blocked domain
+nslookup ads.example.com <home-assistant-ip>
+```
+
+### Debug Logging
+
+Set log level to `debug` or `trace` for detailed diagnostics. Check logs for upstream connection errors, blocklist issues, or query processing problems.
+
+## Support
+
+- **Blocky Official Docs:** https://0xerr0r.github.io/blocky/
+- **Blocky Configuration Reference:** https://0xerr0r.github.io/blocky/latest/configuration/
+- **Add-on Issues:** Open issue in this repository
+- **Home Assistant Community:** https://community.home-assistant.io/
+
+## License
+
+This add-on is distributed under the MIT License. See [LICENSE](LICENSE) file for details.
+
+Blocky itself is licensed under Apache License 2.0 by [0xERR0R](https://github.com/0xERR0R/blocky).

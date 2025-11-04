@@ -1,4 +1,4 @@
 # https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
 name: Blocky Home Assistant add-on repository
 url: "https://github.com/robocopklaus/hassio-addon-blocky"
-maintainer: Fabian Pahl <hi@robocopklaus.dev>
+maintainer: Robocop Klaus <hi@robocopklaus.dev>
