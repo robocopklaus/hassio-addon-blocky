@@ -29,12 +29,21 @@ configuration:
   bootstrap:
     name: Bootstrap DNS
     description: >-
-      Bootstrap DNS servers used to resolve hostnames in DoH/DoT upstream configurations. When your upstream DNS uses domain names (like tcp-tls:dns.google), these bootstrap servers resolve those hostnames first, breaking the circular dependency. Use simple IP-based DNS servers for maximum reliability.
+      Bootstrap DNS servers used to resolve hostnames in DoH/DoT upstream configurations. When your upstream DNS uses domain names (like tcp-tls:dns.google), these bootstrap servers resolve those hostnames first, breaking the circular dependency. Use simple IP-based DNS servers for maximum reliability. Only required if your upstream DNS servers use hostnames instead of IPs.
     fields:
       dns:
-        name: Bootstrap DNS Servers
+        name: DNS Resolvers
         description: >-
-          List of DNS servers as simple strings (e.g., 1.1.1.1, tcp+udp:8.8.8.8, or https://1.1.1.1/dns-query). Each entry becomes a bootstrap upstream in Blocky's configuration. For best reliability, use plain IP addresses. Only needed if your upstream DNS servers use hostnames instead of IPs.
+          List of bootstrap DNS resolvers. Each entry defines an upstream DNS server used to resolve hostnames in your primary upstream configuration. Only needed if your upstream DNS servers use hostnames (e.g., tcp-tls:dns.google) instead of IP addresses.
+        fields:
+          upstream:
+            name: Upstream Resolver
+            description: >-
+              DNS resolver in format [net:]host:[port][/path]. Supported protocols: tcp+udp (default, port 53), tcp-tls (DNS-over-TLS, port 853), https (DNS-over-HTTPS, port 443). Examples: 1.1.1.1 (plain IP), tcp+udp:8.8.8.8:53 (explicit TCP/UDP), tcp-tls:1.1.1.1:853 (DoT with IP), https://1.1.1.1/dns-query (DoH with IP). For best reliability, use IP-based resolvers rather than hostnames to avoid circular dependencies.
+          ips:
+            name: IP Addresses
+            description: >-
+              List of IP addresses for the upstream resolver. REQUIRED when using DoT (tcp-tls:) or DoH (https://) upstreams with hostnames. Optional for IP-based upstreams. Example: When using tcp-tls:dns.example.com, provide the IP address(es) [123.123.123.123] to resolve the hostname. Not needed for upstreams like tcp-tls:1.1.1.1 or https://1.1.1.1/dns-query that already use IPs.
   
   filtering:
     name: Filtering
@@ -233,6 +242,26 @@ configuration:
         name: Negative Result Cache Time
         description: >-
           How long to cache negative results like NXDOMAIN responses or empty answers. Controls caching duration for domains that don't exist. Format: duration string like 10m (10 minutes), 30m (30 minutes), 1h (1 hour). Set to -1 to disable caching of negative results entirely (useful for troubleshooting). Leave empty to use Blocky's default (30 minutes). Default: empty (Blocky default 30m).
+      max_items_count:
+        name: Maximum Cache Items
+        description: >-
+          Maximum number of DNS responses to cache. Caps total cached entries to limit RAM usage on constrained systems (Raspberry Pi, low-memory devices). When limit is reached, least recently used entries are evicted. Format: integer (e.g., 1000, 5000, 10000). Set to 0 (default) for unlimited caching. Only set this if experiencing memory issues - most systems don't need this limit. Typical values: 1000-5000 for very constrained devices, 10000+ for normal use. Default: 0 (unlimited).
+      prefetch_expires:
+        name: Prefetch Tracking Window
+        description: >-
+          Time window for tracking frequently queried domains for prefetching. Only queries within this window count toward the prefetch threshold. Domains not queried within this period are removed from prefetch tracking. Format: duration string like 1h (1 hour), 2h (2 hours, default), 4h (4 hours), 24h (24 hours). Longer values track domains over extended periods but use more memory. Shorter values focus on recently active domains. Only applies when prefetching is enabled. Default: 2h.
+      prefetch_threshold:
+        name: Prefetch Query Threshold
+        description: >-
+          Minimum number of queries required before a domain is marked for prefetching. Domains must be queried at least this many times within the prefetch tracking window to be automatically refreshed. Format: integer (e.g., 3, 5, 10). Higher values (10+) limit prefetching to very popular domains, reducing upstream queries but potentially missing some domains. Lower values (3-5) prefetch more domains for better cache hit rates. Default: 5. Only applies when prefetching is enabled.
+      prefetch_max_items_count:
+        name: Maximum Prefetch Domains
+        description: >-
+          Maximum number of domains to track for prefetching. Caps the prefetch list size to limit memory usage. When limit is reached, least frequently queried domains are removed from prefetch tracking. Format: integer (e.g., 100, 500, 1000). Set to 0 (default) for unlimited tracking. Only relevant when prefetching is enabled. Typical values: 100-500 for constrained devices, 1000+ for normal systems. Default: 0 (unlimited).
+      exclude:
+        name: Cache Exclusion Patterns
+        description: >-
+          Regex patterns for domains to exclude from caching. Matching domains bypass cache entirely and are always forwarded to upstream DNS. Useful for local domains (*.lan, *.local), dynamic DNS services, or domains that change frequently. Format: regex patterns like /.*\.lan$/ (all .lan domains), /.*\.local$/ (all .local domains), /^dynamic\./ (domains starting with 'dynamic.'). Leave empty to cache all domains (default). Examples: /.*\.lan$/, /.*\.local$/, /.*\.home$/. Default: empty (cache everything).
 
   redis:
     name: Redis
@@ -281,6 +310,60 @@ configuration:
         name: Metrics Path
         description: >-
           URL path where Prometheus metrics are exposed. Standard convention is /metrics but can be customized if needed (e.g., /prometheus, /custom-metrics). Only takes effect when metrics are enabled. Default: /metrics.
+
+  query_log:
+    name: Query Logging
+    description: >-
+      Record DNS queries and responses to various storage backends for analysis, debugging, and compliance. WARNING: Query logs contain sensitive information about DNS requests from your network. Enable only when needed and ensure proper data protection. Logged data includes client IPs, requested domains, and response details.
+    fields:
+      type:
+        name: Log Type
+        description: >-
+          Storage backend for query logs. Options: none (disabled, default - no logging), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: none (disabled).
+      target:
+        name: Target Directory
+        description: >-
+          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use /config/query_logs for persistence across restarts. Directory is created automatically if it doesn't exist. Accessible via /addon_config/<repository>_blocky/query_logs/ on the Home Assistant host. Leave empty to use Blocky's default location. Not used for console or database log types. Example: /config/query_logs
+      db_host:
+        name: Database Host
+        description: >-
+          Hostname or IP address of the database server. Only required for database log types (mysql, postgresql, timescale). Examples: localhost, 192.168.1.100, db.example.com. Must be accessible from the Blocky container. Ignored for csv, csv-client, and console types. Example: 192.168.1.50
+      db_port:
+        name: Database Port
+        description: >-
+          Port number for database connection. Only required for database log types. Leave empty to use default ports: 3306 for MySQL/MariaDB, 5432 for PostgreSQL/Timescale. Specify custom port if your database uses non-standard configuration. Ignored for csv, csv-client, and console types. Default: 3306 (MySQL), 5432 (PostgreSQL/Timescale).
+      db_username:
+        name: Database Username
+        description: >-
+          Database authentication username. Only required for database log types (mysql, postgresql, timescale). User must have INSERT, CREATE TABLE privileges on the target database. Ignored for csv, csv-client, and console types. Example: blocky_user
+      db_password:
+        name: Database Password
+        description: >-
+          Database authentication password. Only required for database log types. This field is securely encrypted in the Home Assistant UI. Leave empty if database doesn't require password authentication. Ignored for csv, csv-client, and console types.
+      db_database:
+        name: Database Name
+        description: >-
+          Database name for storing query logs. Only required for database log types (mysql, postgresql, timescale). Blocky automatically creates necessary tables on first run. Database must exist and user must have appropriate permissions. Ignored for csv, csv-client, and console types. Example: blocky_query_log
+      log_retention_days:
+        name: Log Retention Days
+        description: >-
+          Automatic cleanup period for old query logs. Logs older than this many days are automatically deleted. Set to 0 (default) to disable automatic cleanup and retain logs indefinitely. Applies to all log types. Useful for managing disk space and compliance requirements. Format: integer days (e.g., 7, 30, 90). Default: 0 (no automatic cleanup). Example: 30 (keep 30 days of logs).
+      creation_attempts:
+        name: Creation Attempts
+        description: >-
+          Number of times to retry initializing the query log writer on startup if connection fails. Useful when database server starts slowly or CSV directory isn't immediately available. Blocky waits 'creation_cooldown' duration between attempts. Set higher (5-10) for unreliable database connections. Format: integer (e.g., 3, 5, 10). Default: 3.
+      creation_cooldown:
+        name: Creation Cooldown
+        description: >-
+          Time to wait between query log writer initialization attempts. Controls retry delay when initial connection fails. Format: duration string like 1s (1 second), 2s (2 seconds, default), 5s (5 seconds). Longer values give database/filesystem more time to become ready. Default: 2s.
+      fields:
+        name: Log Fields
+        description: >-
+          Select which data fields to include in query logs. Leave empty (default) to log all available fields. Options: clientIP (request origin IP address), clientName (resolved client identifier from clientLookup), responseReason (why this response was returned - cached, blocked, forwarded, etc.), responseAnswer (actual DNS answer returned), question (DNS query details - domain and record type), duration (query processing time in milliseconds). Limiting fields reduces log size and improves privacy. Default: empty (log all fields).
+      flush_interval:
+        name: Flush Interval
+        description: >-
+          How often to write buffered log entries to storage. Blocky batches log entries in memory and writes them in bulk for better performance. Format: duration string like 10s (10 seconds), 30s (30 seconds, default), 1m (1 minute). Lower values provide more real-time logging but increase I/O load. Higher values improve performance but risk losing recent logs on crash. Default: 30s.
 
   log:
     name: Logging

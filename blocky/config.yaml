@@ -1,5 +1,5 @@
 name: Blocky
-version: 2.0.0
+version: 3.0.0
 slug: blocky
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
@@ -9,6 +9,7 @@ arch:
   - amd64
   - aarch64
 image: ghcr.io/robocopklaus/hassio-addon-blocky/{arch}
+watchdog: "http://[HOST]:[PORT:4000]/api/blocking/status"
 init: false
 startup: system
 ports:
@@ -34,8 +35,8 @@ options:
     timeout: 2s
   bootstrap:
     dns:
-      - 1.1.1.1
-      - 8.8.8.8
+      - upstream: 1.1.1.1
+      - upstream: 8.8.8.8
   filtering:
     query_types: []
   fqdn_only:
@@ -57,19 +58,30 @@ options:
     denylists:
       - name: ads
         sources:
+          - https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
           - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+          - https://sysctl.org/cameleon/hosts
+      - name: tracking
+        sources:
+          - https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
     allowlists: []
     client_groups_block:
       - name: default
         lists:
           - ads
+          - tracking
     block_type: zeroIp
     block_ttl: 6h
   caching:
     min_time: 0m
     max_time: 0m
+    max_items_count: 0
     prefetching: false
+    prefetch_expires: 2h
+    prefetch_threshold: 5
+    prefetch_max_items_count: 0
     cache_time_negative: 30m
+    exclude: []
   redis:
     address: ""
     username: ""
@@ -81,6 +93,19 @@ options:
   prometheus:
     enable: false
     path: /metrics
+  query_log:
+    type: ""
+    target: ""
+    db_host: ""
+    db_port: 0
+    db_username: ""
+    db_password: ""
+    db_database: ""
+    log_retention_days: 0
+    creation_attempts: 3
+    creation_cooldown: 2s
+    fields: []
+    flush_interval: 30s
   log:
     level: info
     timestamp: true
@@ -98,7 +123,9 @@ schema:
     user_agent: str?
   bootstrap:
     dns:
-      - str
+      - upstream: str
+        ips:
+          - str?
   filtering:
     query_types:
       - str
@@ -148,8 +175,14 @@ schema:
   caching:
     min_time: str?
     max_time: str?
+    max_items_count: int?
     prefetching: bool?
+    prefetch_expires: str?
+    prefetch_threshold: int?
+    prefetch_max_items_count: int?
     cache_time_negative: str?
+    exclude:
+      - str
   redis:
     address: str?
     username: str?
@@ -161,6 +194,20 @@ schema:
   prometheus:
     enable: bool?
     path: str?
+  query_log:
+    type: list(|csv|csv-client|console|mysql|postgresql|timescale)?
+    target: str?
+    db_host: str?
+    db_port: int?
+    db_username: str?
+    db_password: password?
+    db_database: str?
+    log_retention_days: int?
+    creation_attempts: int?
+    creation_cooldown: str?
+    fields:
+      - str
+    flush_interval: str?
   log:
     level: list(trace|debug|info|warn|error)?
     timestamp: bool?
