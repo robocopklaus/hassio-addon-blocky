@@ -1,3 +1,13 @@
+## [2.0.0](https://github.com/robocopklaus/hassio-addon-blocky/compare/v1.0.0...v2.0.0) (2025-11-04)
+
+### ⚠ BREAKING CHANGES
+
+* add nested configuration schema and automatic backward compatibility migration (#49)
+
+### Features
+
+* add nested configuration schema and automatic backward compatibility migration ([#49](https://github.com/robocopklaus/hassio-addon-blocky/issues/49)) ([7267f51](https://github.com/robocopklaus/hassio-addon-blocky/commit/7267f51576f8b8f9559df5d8b0d68b8f4bd841a3))
+
 # Changelog
 
 > **Developer-focused technical changelog**
