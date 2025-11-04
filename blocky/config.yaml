@@ -1,5 +1,5 @@
 name: Blocky
-version: 3.0.0
+version: 2.0.0
 slug: blocky
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
