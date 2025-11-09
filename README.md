@@ -60,7 +60,7 @@ This repository contains documentation for different audiences:
 
 ```
 .
-├── blocky/                    # Main add-on directory
+├── blocky/                   # Main add-on directory
 │   ├── config.yaml           # Add-on configuration schema
 │   ├── DOCS.md               # Technical configuration reference
 │   ├── README.md             # User-facing documentation
