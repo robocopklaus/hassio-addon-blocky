@@ -34,7 +34,7 @@ jobs:
       commit_sha: ${{ steps.get_sha.outputs.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -81,7 +81,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Checkout the commit that includes version updates from semantic-release
           ref: ${{ needs.semantic_release.outputs.commit_sha }}
