@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0] - 2025-12-31
+
+### Changed
+
+- Blocky upgraded from v0.27.0 to v0.28.2
+
+### Added (Upstream Blocky)
+
+- DNSSEC validation for cryptographic verification of DNS responses
+- DNS Stamp upstream format support
+- SOA records in NXDOMAIN responses (RFC 2308 compliance)
+- NO_COLOR environment variable support
+- MIPS architecture support
+
 ## [3.0.0] - 2025-11-04
 
 ### Added
@@ -128,7 +142,9 @@ Additional breaking changes:
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
-[Unreleased]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.0.0...v3.1.0
+[3.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/robocopklaus/hassio-addon-blocky/releases/tag/v0.3.0
