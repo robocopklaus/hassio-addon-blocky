@@ -1,6 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+)\\s+depName=(?<depName>[^\\s]+)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+)"
+      ]
+    }
+  ],
   "timezone": "Europe/Berlin",
   "schedule": [
     "after 10pm every weekday",
