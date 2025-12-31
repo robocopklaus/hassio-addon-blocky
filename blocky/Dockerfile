@@ -1,6 +1,6 @@
 # https://developers.home-assistant.io/docs/add-ons/configuration#add-on-dockerfile
 # renovate: datasource=docker depName=ghcr.io/home-assistant/amd64-base
-ARG HOME_ASSISTANT_BASE_VERSION=3.20
+ARG HOME_ASSISTANT_BASE_VERSION=3.23
 ARG BUILD_ARCH=amd64
 ARG BUILD_FROM="ghcr.io/home-assistant/${BUILD_ARCH}-base:${HOME_ASSISTANT_BASE_VERSION}"
 FROM ${BUILD_FROM}
