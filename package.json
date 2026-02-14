@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@10.29.3",
   "scripts": {
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
