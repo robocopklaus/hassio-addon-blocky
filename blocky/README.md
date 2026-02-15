@@ -142,9 +142,17 @@ You can disable these or add your own custom lists in the configuration.
 
 ### Network Exposure
 
+> **WARNING:** This add-on is intended for private home networks only. If port 53 is accidentally exposed to the internet (e.g., via misconfigured port forwarding or firewall rules), Blocky becomes an **open DNS resolver** vulnerable to [DNS amplification attacks](https://www.cisa.gov/news-events/alerts/2013/03/29/dns-amplification-attacks). Attackers can abuse open resolvers to launch large-scale distributed denial-of-service (DDoS) attacks against third parties.
+
 - **DNS Port (53):** Required for DNS resolution, exposed to your local network
 - **HTTP API Port (4000):** Metrics and control interface, consider access restrictions
 - Blocky does not require internet-facing exposure
+
+**To prevent DNS amplification:**
+- Ensure your router firewall blocks inbound port 53 traffic from the WAN/internet
+- Never configure port forwarding for port 53 to your Home Assistant host
+- If you must expose Home Assistant remotely, use a VPN or reverse proxy — do not expose DNS directly
+- Periodically verify your setup is not an open resolver using tools like [Open Resolver Project](https://openresolver.com/)
 
 ### Query Logging Privacy
 

@@ -299,6 +299,38 @@ curl "http://homeassistant.local:4000/api/query?query=example.com&type=A"
 - Disable query logging
 - Use DoH/DoT upstreams exclusively
 
+## Security
+
+### DNS Amplification Prevention
+
+This add-on exposes port 53 (TCP and UDP) for DNS resolution. While Home Assistant's container network typically provides LAN isolation, misconfigured routers or firewall rules can accidentally expose port 53 to the internet, turning Blocky into an **open DNS resolver**.
+
+**What is a DNS amplification attack?**
+
+DNS amplification is a type of DDoS attack where an attacker sends small DNS queries with a spoofed source IP to an open resolver. The resolver sends much larger responses to the victim's IP address, amplifying the attack traffic. A single misconfigured resolver can generate significant attack bandwidth.
+
+**How to protect yourself:**
+
+1. **Router firewall rules** — Block all inbound DNS traffic (port 53 TCP/UDP) from your WAN interface. Most consumer routers do this by default, but verify your configuration:
+   ```
+   # Example: iptables rule to block external DNS access
+   iptables -A INPUT -i eth0 -p udp --dport 53 -j DROP
+   iptables -A INPUT -i eth0 -p tcp --dport 53 -j DROP
+   ```
+   Replace `eth0` with your WAN interface name.
+
+2. **No port forwarding** — Never create port forwarding rules for port 53 to your Home Assistant host. DNS resolution should only be available on your local network.
+
+3. **VPN for remote access** — If you need DNS resolution remotely, use a VPN to connect to your home network rather than exposing port 53 directly.
+
+4. **Verify your configuration** — Use an external open resolver test to confirm port 53 is not reachable from the internet:
+   - [Open Resolver Project](https://openresolver.com/) — Tests if your IP is an open resolver
+   - From an external network: `nslookup example.com <your-public-ip>` — should timeout or be refused
+
+5. **Monitor DNS traffic** — Enable query logging temporarily to check for unexpected query patterns (high volumes, queries from unknown IPs) that may indicate your resolver is being abused.
+
+**Note:** Home Assistant's Docker network architecture provides a layer of isolation, and the add-on's port mappings are typically only accessible from the local network. However, network configurations vary, and it is your responsibility to ensure port 53 is not exposed to the internet.
+
 ## Troubleshooting
 
 ### Verify Configuration
