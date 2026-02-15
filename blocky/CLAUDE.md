@@ -9,7 +9,7 @@ This is a **Home Assistant Add-on** that wraps [Blocky](https://github.com/0xERR
 - **Type**: Docker-based Home Assistant Add-on
 - **Purpose**: Network-wide DNS-based ad blocking and privacy enhancement
 - **Language**: Shell scripts (Bash) for integration; wraps a pre-built Go binary
-- **Blocky Version**: v0.27.0
+- **Blocky Version**: Defined by `BLOCKY_VERSION` ARG in `Dockerfile`
 
 ## Development Commands
 
