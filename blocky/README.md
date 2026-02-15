@@ -77,13 +77,16 @@ Configure the add-on through the Home Assistant UI. Your settings are converted 
 
 ### Custom Config Mode
 
-For advanced users who want full control:
+> **WARNING:** When Custom Configuration Mode is enabled, **all UI options are completely ignored**. Any changes you make in the Home Assistant add-on configuration UI will have **no effect**. You must edit the YAML file directly. A persistent notification will appear in Home Assistant to remind you that custom config mode is active.
 
-1. Enable **Custom Config** in the add-on configuration
-2. Place your `config.yml` in `/addon_config/<repository>_blocky/`
-3. Your custom configuration will be used directly
+For advanced users who want full control over Blocky's configuration:
 
-**Warning:** In custom config mode, UI settings are ignored and your configuration file will not be overwritten.
+1. Enable **Custom Configuration Mode** in the add-on configuration
+2. On first start, an initial `config.yml` is generated from your current UI settings
+3. Edit `/addon_config/<repository>_blocky/config.yml` directly for all future changes
+4. To return to UI-based configuration, disable **Custom Configuration Mode** and restart
+
+This mode is useful for accessing advanced Blocky features not exposed in the UI, such as per-client blocking rules, regex patterns, EDE (Extended DNS Errors), and special protocols.
 
 ## Basic Usage
 

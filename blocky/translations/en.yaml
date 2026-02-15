@@ -384,6 +384,6 @@ configuration:
           Obfuscates sensitive data in logs by replacing alphanumeric characters with asterisks (*). Affects DNS query domains and response data. Enable in shared environments or for compliance requirements (e.g., GDPR). When enabled, logs will show patterns like "query: *********" instead of actual domains. Default: false.
 
   custom_config:
-    name: Custom Configuration Mode
+    name: "Custom Configuration Mode (WARNING: disables all UI options)"
     description: >-
-      Enable custom configuration mode to manually edit Blocky's configuration file directly. When enabled, all Home Assistant UI options are ignored, and you must edit the YAML file at /addon_config/<repository>_blocky/config.yml. Use this for advanced Blocky features not available in the UI, such as per-client blocking rules, query logging, regex patterns, and custom DNS records. On first enable, the add-on generates an initial config from your current UI settings as a starting point. See documentation for full details. Default: false (use UI configuration).
+      WARNING: When enabled, ALL settings configured in the UI above are COMPLETELY IGNORED. Any changes you make in the UI will have NO effect on Blocky's behavior. You must edit the YAML configuration file directly at /addon_config/<repository>_blocky/config.yml. A persistent notification will appear in Home Assistant as a reminder. On first enable, the add-on generates an initial config from your current UI settings as a starting point. To return to UI-based configuration, disable this option and restart. Use this mode only for advanced Blocky features not available in the UI, such as per-client blocking rules, regex patterns, and EDE. Default: false (use UI configuration).

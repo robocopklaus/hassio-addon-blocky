@@ -146,7 +146,14 @@ Resolve client IP addresses to friendly names using reverse DNS and static mappi
 
 ### Custom Config Mode
 
-Enable to use manual YAML configuration at `/addon_config/<repository>_blocky/config.yml`. All UI settings are ignored when enabled. Use for advanced Blocky features not available in UI (regex patterns, per-client rules, etc.).
+> **WARNING:** When Custom Configuration Mode is enabled, **all settings configured in the Home Assistant UI are completely ignored**. Any changes made through the UI will have no effect on Blocky's behavior. A persistent notification will appear in Home Assistant as a reminder.
+
+Enable to use manual YAML configuration at `/addon_config/<repository>_blocky/config.yml`. Use for advanced Blocky features not available in the UI (regex patterns, per-client rules, EDE, special protocols, etc.).
+
+**How it works:**
+- **First start with custom config enabled:** The add-on generates an initial `config.yml` from your current UI settings as a starting point
+- **Subsequent starts:** The existing `config.yml` is used as-is; UI options are ignored
+- **Switching back:** Disable Custom Configuration Mode and restart to return to UI-based configuration
 
 ## Configuration Examples
 

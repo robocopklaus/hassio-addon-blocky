@@ -17,8 +17,10 @@ if bashio::config.true 'custom_config'; then
     if [ -f "${ADDON_CONFIG_PATH}/config.yml" ]; then
         # Custom config mode: preserve existing manual configuration
         bashio::log.warning "Custom config enabled: Using existing config.yml"
-        bashio::log.warning "UI options are IGNORED"
+        bashio::log.warning "All UI configuration options are being IGNORED"
+        bashio::log.warning "Any changes made in the UI will have NO effect"
         bashio::log.info "Edit /addon_config/<repository>_blocky/config.yml to modify your configuration"
+        bashio::log.info "To return to UI-based configuration, disable 'Custom Configuration Mode' and restart"
     else
         # Generate initial config for first run
         bashio::log.info "Custom config enabled: Generating initial configuration..."
@@ -37,7 +39,25 @@ if bashio::config.true 'custom_config'; then
 
         bashio::log.info "Initial config created. You can now customize /addon_config/<repository>_blocky/config.yml"
     fi
+
+    # Create a persistent Home Assistant notification to warn the user
+    bashio::log.info "Creating persistent notification for custom config mode..."
+    if bashio::api.supervisor POST /core/api/services/persistent_notification/create \
+        "$(bashio::var.json \
+            title "Blocky: Custom Configuration Mode Active" \
+            message "The Blocky add-on is running in **custom configuration mode**. All settings configured in the add-on UI are being **ignored**. To make changes, edit the configuration file directly at \`/addon_config/local_blocky/config.yml\`. To return to UI-based configuration, disable **Custom Configuration Mode** in the add-on settings and restart." \
+            notification_id "blocky_custom_config_warning" \
+        )"; then
+        bashio::log.info "Persistent notification created"
+    else
+        bashio::log.warning "Could not create persistent notification (non-critical)"
+    fi
 else
+    # Standard mode: dismiss any previous custom config notification
+    bashio::api.supervisor POST /core/api/services/persistent_notification/dismiss \
+        "$(bashio::var.json notification_id "blocky_custom_config_warning")" \
+        2>/dev/null || true
+
     # Standard mode: always regenerate configuration from addon options
     bashio::log.info "Generating configuration from addon options..."
     if ! tempio \
