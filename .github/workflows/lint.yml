@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: blocky/Dockerfile
+          failure-threshold: warning
+
+      - name: Lint shell scripts
+        run: |
+          shellcheck -s bash blocky/rootfs/etc/cont-init.d/config.sh \
+            blocky/rootfs/etc/services.d/blocky/run \
+            blocky/rootfs/etc/services.d/blocky/finish
