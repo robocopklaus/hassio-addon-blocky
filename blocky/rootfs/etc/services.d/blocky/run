@@ -27,6 +27,13 @@ if [ ! -s "${CONFIG_FILE}" ]; then
     exit 1
 fi
 
+# Validate configuration against Blocky's schema
+bashio::log.info "Validating Blocky configuration..."
+if ! blocky validate --config "${CONFIG_FILE}"; then
+    bashio::log.fatal "Configuration validation failed: ${CONFIG_FILE}"
+    exit 1
+fi
+
 bashio::log.info "Pre-flight checks passed"
 bashio::log.info "Starting Blocky..."
 
