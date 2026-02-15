@@ -156,16 +156,16 @@ You can disable these or add your own custom lists in the configuration.
 
 ### Query Logging Privacy
 
-Query logs contain all DNS requests from your network, which may include sensitive information:
-- Websites visited by household members
-- Smart device communication patterns
-- Application network activity
+> **WARNING:** Query logs contain sensitive information about all DNS activity on your network, including websites visited by household members, smart device communication patterns, and application network activity. Only enable query logging when actively needed for debugging or analysis.
+
+Privacy mode is **enabled by default** to obfuscate domain names and client IPs in logs. Even with privacy mode enabled, query metadata (timing, frequency, response types) may still reveal browsing patterns.
 
 Recommendations:
-- Only enable query logging if necessary
-- Restrict access to log files
-- Consider privacy implications before enabling database logging
-- Regularly rotate or purge old logs
+- Only enable query logging when necessary for debugging or analysis
+- Keep privacy mode enabled unless you specifically need full domain visibility
+- Restrict access to log files and database credentials
+- Use `log_retention_days` to automatically purge old logs
+- Consider privacy implications before enabling database logging, as logs stored long-term create persistent privacy risks
 
 ## Troubleshooting
 
