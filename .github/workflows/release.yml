@@ -114,6 +114,12 @@ jobs:
           echo "armv7_base=${ARMV7_BASE}" >> $GITHUB_OUTPUT
           echo "armv6_base=${ARMV6_BASE}" >> $GITHUB_OUTPUT
 
+      - name: Set build metadata
+        id: build_meta
+        run: |
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+          echo "build_ref=${{ needs.semantic_release.outputs.commit_sha }}" >> $GITHUB_OUTPUT
+
       - name: Build and export amd64 for scanning
         uses: docker/build-push-action@v6
         env:
@@ -131,8 +137,8 @@ jobs:
             BUILD_DESCRIPTION=${{ env.BUILD_DESCRIPTION }}
             BUILD_NAME=${{ env.BUILD_NAME }}
             BUILD_REPOSITORY=${{ github.repository }}
-            BUILD_REF=${{ needs.semantic_release.outputs.commit_sha }}
-            BUILD_DATE=${{ github.event.repository.updated_at }}
+            BUILD_REF=${{ steps.build_meta.outputs.build_ref }}
+            BUILD_DATE=${{ steps.build_meta.outputs.build_date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -164,8 +170,8 @@ jobs:
               --build-arg BUILD_DESCRIPTION="${BUILD_DESCRIPTION}" \
               --build-arg BUILD_NAME="${BUILD_NAME}" \
               --build-arg BUILD_REPOSITORY="${GITHUB_REPOSITORY}" \
-              --build-arg BUILD_REF="${GITHUB_SHA}" \
-              --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --build-arg BUILD_REF="${{ steps.build_meta.outputs.build_ref }}" \
+              --build-arg BUILD_DATE="${{ steps.build_meta.outputs.build_date }}" \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
               blocky
