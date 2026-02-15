@@ -12,6 +12,14 @@ bashio::log.info "Configuring Blocky..."
 mkdir -p "${CONFIG_PATH}"
 mkdir -p "${ADDON_CONFIG_PATH}"
 
+# ------------------------------------------------------------------------------
+# Restrict config directory permissions
+# Config files may contain plaintext passwords for Redis, MySQL, and PostgreSQL.
+# Ensure only root can read/write the directories and their contents.
+# ------------------------------------------------------------------------------
+chmod 700 "${CONFIG_PATH}"
+chmod 700 "${ADDON_CONFIG_PATH}"
+
 # Check if custom configuration is enabled
 if bashio::config.true 'custom_config'; then
     if [ -f "${ADDON_CONFIG_PATH}/config.yml" ]; then
@@ -54,11 +62,17 @@ else
     fi
 fi
 
+# Restrict config file permissions (contains plaintext passwords)
+chmod 600 "${ADDON_CONFIG_PATH}/config.yml"
+
 # Copy the generated config to the runtime location
 if ! cp "${ADDON_CONFIG_PATH}/config.yml" "${CONFIG_PATH}/config.yml"; then
     bashio::log.fatal "Failed to copy configuration to runtime location"
     exit 1
 fi
+
+# Restrict runtime config file permissions (contains plaintext passwords)
+chmod 600 "${CONFIG_PATH}/config.yml"
 
 # Create query log directory if CSV logging is enabled
 if bashio::config.has_value 'query_log.target'; then

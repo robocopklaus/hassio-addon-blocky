@@ -3,6 +3,9 @@
 # Start Blocky service
 # ==============================================================================
 
+# shellcheck source=/dev/null
+source /usr/local/lib/blocky-helpers.sh
+
 declare -a options
 readonly CONFIG_FILE="/etc/blocky/config.yml"
 
@@ -28,11 +31,14 @@ if [ ! -s "${CONFIG_FILE}" ]; then
 fi
 
 # Validate configuration against Blocky's schema
+# Scrub secrets from validation output to prevent password leakage in logs
 bashio::log.info "Validating Blocky configuration..."
-if ! blocky validate --config "${CONFIG_FILE}"; then
+validate_output="$(blocky validate --config "${CONFIG_FILE}" 2>&1)" || {
+    echo "${validate_output}" | scrub_secrets
     bashio::log.fatal "Configuration validation failed: ${CONFIG_FILE}"
     exit 1
-fi
+}
+echo "${validate_output}" | scrub_secrets
 
 bashio::log.info "Pre-flight checks passed"
 bashio::log.info "Starting Blocky..."
