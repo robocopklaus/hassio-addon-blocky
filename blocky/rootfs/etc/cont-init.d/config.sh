@@ -35,6 +35,14 @@ if bashio::config.true 'custom_config'; then
             exit 1
         fi
 
+        # Validate the generated configuration
+        bashio::log.info "Validating generated configuration..."
+        if blocky validate --config "${ADDON_CONFIG_PATH}/config.yml" 2>&1; then
+            bashio::log.info "Configuration validation passed"
+        else
+            bashio::log.warning "Configuration validation reported issues - review your config"
+        fi
+
         bashio::log.info "Initial config created. You can now customize /addon_config/<repository>_blocky/config.yml"
     fi
 else
