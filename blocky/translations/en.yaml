@@ -323,7 +323,7 @@ configuration:
       target:
         name: Target Directory
         description: >-
-          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use /config/query_logs for persistence across restarts. Directory is created automatically if it doesn't exist. Accessible via /addon_config/<repository>_blocky/query_logs/ on the Home Assistant host. Leave empty to use Blocky's default location. Not used for console or database log types. Example: /config/query_logs
+          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use container-internal path /config/query_logs for persistence across restarts (this maps to host path /addon_config/<repository>_blocky/query_logs/ where you can access the files from your Home Assistant host). Directory is created automatically if it doesn't exist. Leave empty to use Blocky's default location. Not used for console or database log types. Example: /config/query_logs
       db_host:
         name: Database Host
         description: >-
