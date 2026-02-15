@@ -1,0 +1,7 @@
+ignored:
+  # Packages are intentionally unpinned — the base image pins the Alpine
+  # version and rebuilds pick up the latest security patches automatically.
+  - DL3018
+  # Multiple consecutive RUN instructions are used intentionally for
+  # readability and better layer caching during development.
+  - DL3059

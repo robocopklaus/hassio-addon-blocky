@@ -1,0 +1,11 @@
+# All scripts use #!/usr/bin/with-contenv bashio which ShellCheck cannot
+# parse, so we explicitly declare the shell dialect.
+shell=bash
+
+# SC1091: Cannot follow bashio source — only available inside the container
+# runtime, not at lint time.
+disable=SC1091
+
+# SC2155: Combining declare and assign (e.g. local var=$(bashio::config ...))
+# is the idiomatic pattern used with bashio helpers throughout this project.
+disable=SC2155
