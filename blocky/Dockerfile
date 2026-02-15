@@ -3,6 +3,7 @@
 ARG HOME_ASSISTANT_BASE_VERSION=3.23
 ARG BUILD_ARCH=amd64
 ARG BUILD_FROM="ghcr.io/home-assistant/${BUILD_ARCH}-base:${HOME_ASSISTANT_BASE_VERSION}"
+# hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
 # Set shell
@@ -23,12 +24,14 @@ RUN \
     && chmod +x /usr/bin/tempio
 
 # Install dependencies
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     ca-certificates \
     curl \
     tzdata
 
 # Download Blocky binary based on architecture
+WORKDIR /tmp
 RUN \
     case "${BUILD_ARCH}" in \
         amd64) ARCH="x86_64" ;; \
@@ -45,7 +48,6 @@ RUN \
     && curl -sSLf -o /tmp/blocky_checksums.txt \
         "https://github.com/0xERR0R/blocky/releases/download/${BLOCKY_VERSION}/blocky_checksums.txt" \
     && echo "Verifying checksum..." \
-    && cd /tmp \
     && grep "${BLOCKY_TARBALL}" blocky_checksums.txt | sha256sum -c - \
     && echo "Checksum verified successfully" \
     && tar -xzf "${BLOCKY_TARBALL}" -C /tmp \
