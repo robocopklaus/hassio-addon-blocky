@@ -91,7 +91,7 @@ Contributions are welcome! Here's how you can help:
 
 ### Reporting Issues
 
-If you encounter problems or have feature requests, please [open an issue](https://github.com/yourusername/hassio-addon-blocky/issues) with:
+If you encounter problems or have feature requests, please [open an issue](https://github.com/robocopklaus/hassio-addon-blocky/issues) with:
 - A clear description of the issue
 - Steps to reproduce (if applicable)
 - Your Home Assistant version and architecture
@@ -128,7 +128,7 @@ The upstream Blocky project is licensed under the Apache License 2.0.
 
 ## Support
 
-- **Add-on Issues**: [GitHub Issues](https://github.com/yourusername/hassio-addon-blocky/issues)
+- **Add-on Issues**: [GitHub Issues](https://github.com/robocopklaus/hassio-addon-blocky/issues)
 - **Blocky Documentation**: [Official Blocky Docs](https://0xerr0r.github.io/blocky/)
 - **Home Assistant Community**: [Community Forum](https://community.home-assistant.io/)
 
