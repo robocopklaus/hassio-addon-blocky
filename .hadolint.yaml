@@ -1,0 +1,11 @@
+ignored:
+  # The RUN instruction uses `cd /tmp` to verify checksums in-place with
+  # sha256sum -c. A WORKDIR directive is not appropriate here because the
+  # directory change is scoped to a single RUN layer.
+  - DL3003
+  # Packages are intentionally unpinned — the base image pins the Alpine
+  # version and rebuilds pick up the latest security patches automatically.
+  - DL3018
+  # Multiple consecutive RUN instructions are used intentionally for
+  # readability and better layer caching during development.
+  - DL3059
