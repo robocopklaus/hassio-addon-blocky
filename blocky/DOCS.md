@@ -322,6 +322,33 @@ nslookup example.com <home-assistant-ip>
 nslookup ads.example.com <home-assistant-ip>
 ```
 
+### Port 53 Already in Use (systemd-resolved)
+
+On Linux systems (including some Home Assistant Supervised installations), `systemd-resolved` may already be listening on port 53, preventing Blocky from starting.
+
+**Check if port 53 is in use:**
+```bash
+ss -tulnp | grep :53
+# or
+sudo lsof -i :53
+```
+
+**Option 1: Disable systemd-resolved entirely**
+```bash
+sudo systemctl disable systemd-resolved
+sudo systemctl stop systemd-resolved
+```
+After disabling, update `/etc/resolv.conf` to point to a working DNS server (e.g., `nameserver 1.1.1.1`).
+
+**Option 2: Disable only the DNS stub listener**
+```bash
+# Edit /etc/systemd/resolved.conf
+sudo sed -i 's/#DNSStubListener=yes/DNSStubListener=no/' /etc/systemd/resolved.conf
+sudo systemctl restart systemd-resolved
+```
+
+**Home Assistant OS:** This is generally not an issue, as systemd-resolved is not running on Home Assistant OS.
+
 ### Debug Logging
 
 Set log level to `debug` or `trace` for detailed diagnostics. Check logs for upstream connection errors, blocklist issues, or query processing problems.
