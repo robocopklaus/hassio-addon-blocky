@@ -8,6 +8,15 @@
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+)\\s+depName=(?<depName>[^\\s]+)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+)"
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "Track Home Assistant base image versions in build.yaml",
+      "fileMatch": ["(^|/)build\\.yaml$"],
+      "matchStrings": [
+        "\\s+\\w+:\\s+(?<depName>ghcr\\.io/home-assistant/[\\w-]+-base):(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "docker"
     }
   ],
   "timezone": "Europe/Berlin",
