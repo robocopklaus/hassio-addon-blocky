@@ -142,7 +142,7 @@ Resolve client IP addresses to friendly names using reverse DNS and static mappi
 ### Logging
 
 - **Level**: `trace`, `debug`, `info` (default), `warn`, `error`
-- **Privacy Mode**: Obfuscate domains and IPs in logs with asterisks
+- **Privacy Mode**: Obfuscate domains and IPs in logs with asterisks (enabled by default). Disable only when full domain visibility is needed for debugging. Note that even with privacy mode enabled, query metadata (timing, frequency, response types) may still reveal browsing patterns.
 
 ### Custom Config Mode
 

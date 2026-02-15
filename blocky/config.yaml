@@ -109,7 +109,7 @@ options:
   log:
     level: info
     timestamp: true
-    privacy: false
+    privacy: true
   custom_config: false
 schema:
   upstreams:

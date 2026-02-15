@@ -381,7 +381,7 @@ configuration:
       privacy:
         name: Privacy Mode
         description: >-
-          Obfuscates sensitive data in logs by replacing alphanumeric characters with asterisks (*). Affects DNS query domains and response data. Enable in shared environments or for compliance requirements (e.g., GDPR). When enabled, logs will show patterns like "query: *********" instead of actual domains. Default: false.
+          Obfuscates sensitive data in logs by replacing alphanumeric characters with asterisks (*). Affects DNS query domains and response data. WARNING: When disabled, full domain names and client IP addresses are logged in plaintext, exposing browsing habits of all network users. Even with privacy mode enabled, query metadata (timing, frequency, response types) may still reveal browsing patterns. Enable in shared environments or for compliance requirements (e.g., GDPR). When enabled, logs will show patterns like "query: *********" instead of actual domains. Default: true (enabled).
 
   custom_config:
     name: Custom Configuration Mode
