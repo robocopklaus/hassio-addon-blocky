@@ -194,6 +194,15 @@ jobs:
 
           echo "::group::Creating multi-arch manifest"
 
+          # Verify all architecture images exist before creating manifest
+          for ARCH in amd64 aarch64 armv7 armhf; do
+            echo "Verifying ${ARCH} image..."
+            docker buildx imagetools inspect "${IMAGE_NAME}/${ARCH}:${VERSION}" > /dev/null 2>&1 || {
+              echo "::error::Missing ${ARCH} image for version ${VERSION}"
+              exit 1
+            }
+          done
+
           # Create manifest for versioned tag
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:${VERSION}" \
