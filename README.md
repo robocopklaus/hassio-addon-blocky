@@ -12,7 +12,7 @@
 
 ## About
 
-This repository contains a Home Assistant add-on that packages [Blocky](https://github.com/0xERR0R/blocky) (v0.28.2), a fast and lightweight DNS proxy and ad-blocker. Blocky provides network-wide ad blocking, privacy protection, and advanced DNS features for your entire network through a single Home Assistant add-on.
+This repository contains a Home Assistant add-on that packages [Blocky](https://github.com/0xERR0R/blocky), a fast and lightweight DNS proxy and ad-blocker. Blocky provides network-wide ad blocking, privacy protection, and advanced DNS features for your entire network through a single Home Assistant add-on.
 
 ### Key Features
 
