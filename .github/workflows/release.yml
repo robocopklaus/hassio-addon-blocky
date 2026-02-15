@@ -114,6 +114,49 @@ jobs:
           echo "armv7_base=${ARMV7_BASE}" >> $GITHUB_OUTPUT
           echo "armv6_base=${ARMV6_BASE}" >> $GITHUB_OUTPUT
 
+      - name: Determine latest tag eligibility
+        id: latest_check
+        env:
+          VERSION: ${{ needs.semantic_release.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "::group::Checking :latest tag eligibility"
+
+          UPDATE_LATEST=true
+
+          # Skip :latest for pre-release versions (e.g., 1.0.0-beta.1)
+          if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
+            echo "::warning::Pre-release version detected (${VERSION}), skipping :latest tag update"
+            UPDATE_LATEST=false
+          fi
+
+          # Guard against version rollback
+          if [ "${UPDATE_LATEST}" = "true" ]; then
+            # Current release is newest in the list; previous stable release is second
+            PREV_LATEST=$(gh release list --exclude-drafts --exclude-pre-releases --limit 2 --json tagName -q '.[1].tagName // empty' | sed 's/^v//')
+
+            if [ -n "${PREV_LATEST}" ]; then
+              echo "Previous stable release: ${PREV_LATEST}"
+              echo "New version: ${VERSION}"
+
+              # Compare versions using sort -V (version sort)
+              HIGHER=$(printf '%s\n%s' "${PREV_LATEST}" "${VERSION}" | sort -V | tail -n1)
+              if [ "${HIGHER}" != "${VERSION}" ]; then
+                echo "::error::Version rollback detected: ${VERSION} is not newer than ${PREV_LATEST}"
+                echo "::error::Skipping :latest tag update to prevent rollback"
+                UPDATE_LATEST=false
+              else
+                echo "New version ${VERSION} is newer than ${PREV_LATEST}"
+              fi
+            else
+              echo "No previous stable release found, proceeding with :latest update"
+            fi
+          fi
+
+          echo "update_latest=${UPDATE_LATEST}" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+
       - name: Build and export amd64 for scanning
         uses: docker/build-push-action@v6
         env:
@@ -139,6 +182,7 @@ jobs:
       - name: Build and push architecture-specific images
         env:
           VERSION: ${{ needs.semantic_release.outputs.version }}
+          UPDATE_LATEST: ${{ steps.latest_check.outputs.update_latest }}
         run: |
           set -euo pipefail
 
@@ -152,11 +196,15 @@ jobs:
 
             echo "::notice::Building ${ARCH} for ${PLATFORM}"
 
+            local -a TAGS=(--tag "${IMAGE_NAME}/${ARCH}:${VERSION}")
+            if [ "${UPDATE_LATEST}" = "true" ]; then
+              TAGS+=(--tag "${IMAGE_NAME}/${ARCH}:latest")
+            fi
+
             docker buildx build \
               --platform "${PLATFORM}" \
               --push \
-              --tag "${IMAGE_NAME}/${ARCH}:${VERSION}" \
-              --tag "${IMAGE_NAME}/${ARCH}:latest" \
+              "${TAGS[@]}" \
               --file blocky/Dockerfile \
               --build-arg BUILD_ARCH="${ARCH}" \
               --build-arg BUILD_FROM="${BUILD_FROM}" \
@@ -186,9 +234,37 @@ jobs:
 
           echo "::endgroup::"
 
+      - name: Verify architecture images
+        env:
+          VERSION: ${{ needs.semantic_release.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "::group::Verifying architecture images"
+
+          FAILED=false
+          for ARCH in amd64 aarch64 armv7 armhf; do
+            IMAGE="${IMAGE_NAME}/${ARCH}:${VERSION}"
+            echo "Checking ${IMAGE}..."
+            if docker buildx imagetools inspect "${IMAGE}" > /dev/null 2>&1; then
+              echo "::notice::Verified: ${IMAGE}"
+            else
+              echo "::error::Missing: ${IMAGE}"
+              FAILED=true
+            fi
+          done
+
+          if [ "${FAILED}" = "true" ]; then
+            echo "::error::One or more architecture images are missing. Cannot create multi-arch manifest."
+            exit 1
+          fi
+
+          echo "All architecture images verified"
+          echo "::endgroup::"
+
       - name: Create and push multi-arch manifest
         env:
           VERSION: ${{ needs.semantic_release.outputs.version }}
+          UPDATE_LATEST: ${{ steps.latest_check.outputs.update_latest }}
         run: |
           set -euo pipefail
 
@@ -202,13 +278,18 @@ jobs:
             "${IMAGE_NAME}/armv7:${VERSION}" \
             "${IMAGE_NAME}/armhf:${VERSION}"
 
-          # Create manifest for latest tag
-          docker buildx imagetools create \
-            -t "${IMAGE_NAME}:latest" \
-            "${IMAGE_NAME}/amd64:latest" \
-            "${IMAGE_NAME}/aarch64:latest" \
-            "${IMAGE_NAME}/armv7:latest" \
-            "${IMAGE_NAME}/armhf:latest"
+          # Conditionally create manifest for latest tag
+          if [ "${UPDATE_LATEST}" = "true" ]; then
+            echo "Updating :latest tag..."
+            docker buildx imagetools create \
+              -t "${IMAGE_NAME}:latest" \
+              "${IMAGE_NAME}/amd64:${VERSION}" \
+              "${IMAGE_NAME}/aarch64:${VERSION}" \
+              "${IMAGE_NAME}/armv7:${VERSION}" \
+              "${IMAGE_NAME}/armhf:${VERSION}"
+          else
+            echo "::warning::Skipping :latest tag update (pre-release or version rollback detected)"
+          fi
 
           echo "::endgroup::"
 
@@ -217,6 +298,7 @@ jobs:
       - name: Inspect and summarize images
         env:
           VERSION: ${{ needs.semantic_release.outputs.version }}
+          UPDATE_LATEST: ${{ steps.latest_check.outputs.update_latest }}
         run: |
           set -euo pipefail
 
@@ -237,7 +319,11 @@ jobs:
           # List all tags
           echo "#### Published Tags" >> $GITHUB_STEP_SUMMARY
           echo "- \`${IMAGE_NAME}:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${IMAGE_NAME}:latest\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${UPDATE_LATEST}" = "true" ]; then
+            echo "- \`${IMAGE_NAME}:latest\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- \`${IMAGE_NAME}:latest\` _(not updated)_" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "- \`${IMAGE_NAME}/amd64:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`${IMAGE_NAME}/aarch64:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`${IMAGE_NAME}/armv7:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
