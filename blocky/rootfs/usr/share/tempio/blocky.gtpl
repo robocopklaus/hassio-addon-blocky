@@ -264,7 +264,7 @@ queryLog:
 {{- if eq $queryLog.type "mysql" }}
   target: {{ if $queryLog.db_username }}{{ $queryLog.db_username }}{{ if $queryLog.db_password }}:{{ $queryLog.db_password }}{{ end }}@{{ end }}tcp({{ $queryLog.db_host }}:{{ $port }})/{{ $queryLog.db_database }}?charset=utf8mb4&parseTime=True
 {{- else }}
-  target: postgres://{{ if $queryLog.db_username }}{{ $queryLog.db_username }}{{ if $queryLog.db_password }}:{{ $queryLog.db_password }}{{ end }}@{{ end }}{{ $queryLog.db_host }}:{{ $port }}/{{ $queryLog.db_database }}
+  target: postgres://{{ if $queryLog.db_username }}{{ urlquery $queryLog.db_username | replace "+" "%20" }}{{ if $queryLog.db_password }}:{{ urlquery $queryLog.db_password | replace "+" "%20" }}{{ end }}@{{ end }}{{ $queryLog.db_host }}:{{ $port }}/{{ $queryLog.db_database }}
 {{- end }}
 {{- end }}
 {{- end }}
