@@ -6,7 +6,7 @@
       "customType": "regex",
       "fileMatch": ["(^|/)Dockerfile$"],
       "matchStrings": [
-        "#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+)\\s+depName=(?<depName>[^\\s]+)\\nARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+)"
+        "#\\s*renovate:\\s*datasource=(?<datasource>[a-zA-Z-]+)\\s+depName=(?<depName>[^\\s]+)\\s*\\n+ARG\\s+[A-Z_]+_VERSION=(?<currentValue>.+)"
       ]
     }
   ],
