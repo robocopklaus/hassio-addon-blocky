@@ -44,6 +44,6 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          git pull --rebase
           git commit -m "chore: sync blocky-dev from blocky @ ${GITHUB_SHA::7} [skip ci]"
+          git pull --rebase
           git push
