@@ -11,12 +11,6 @@ on:
       - ".github/workflows/lint.yml"
   pull_request:
     branches: [main]
-    paths:
-      - "blocky/Dockerfile"
-      - "blocky/rootfs/**"
-      - ".hadolint.yaml"
-      - ".shellcheckrc"
-      - ".github/workflows/lint.yml"
 
 jobs:
   hadolint:
