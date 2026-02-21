@@ -8,20 +8,16 @@
 declare APP_EXIT_CODE=${1}
 
 # Exit code handling:
-# - 0: Clean shutdown (normal)
-# - 256: Signals are encoded as 256 + signal number (e.g., SIGTERM = 256 + 15 = 271)
-#        Exit code 256 itself means abnormal exit without signal
-# - Other: Application error or crash
-#
-# For exit code 0 or 256, allow service restart
-# For other codes, halt the add-on to prevent restart loops
+# - 0: Clean shutdown (normal), allow restart
+# - >256: Signal-derived (256 + signal number, e.g., SIGTERM = 271), allow restart
+# - 1-256: Application error or abnormal exit (256 = abnormal without signal), halt
 
 if [[ "${APP_EXIT_CODE}" -eq 0 ]]; then
   bashio::log.info "Service stopped cleanly (exit code 0)"
   exit 0
 fi
 
-if [[ "${APP_EXIT_CODE}" -ge 256 ]]; then
+if [[ "${APP_EXIT_CODE}" -gt 256 ]]; then
   bashio::log.info "Service stopped via signal-derived exit code ${APP_EXIT_CODE}"
   exit 0
 fi
