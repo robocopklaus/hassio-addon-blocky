@@ -54,23 +54,24 @@ This repository contains documentation for different audiences:
 |----------|----------|----------|
 | [blocky/README.md](./blocky/README.md) | **Users** | Installation, configuration, usage, troubleshooting |
 | [blocky/DOCS.md](./blocky/DOCS.md) | **Advanced Users** | Complete configuration reference, API documentation, performance tuning |
-| [blocky/CLAUDE.md](./blocky/CLAUDE.md) | **Developers** | Architecture, development workflow, contribution guidelines |
+| [CLAUDE.md](./CLAUDE.md) | **Developers** | Architecture, development workflow, contribution guidelines |
 
 ## Repository Structure
 
 ```
 .
-├── blocky/                   # Main add-on directory
+├── CLAUDE.md                 # Developer documentation
+├── blocky/                   # Main add-on directory (stable)
 │   ├── config.yaml           # Add-on configuration schema
 │   ├── DOCS.md               # Technical configuration reference
 │   ├── README.md             # User-facing documentation
-│   ├── CLAUDE.md             # Developer documentation
 │   ├── Dockerfile            # Multi-architecture container build
 │   ├── rootfs/               # Container filesystem overlay
 │   │   ├── etc/cont-init.d/  # Initialization scripts
 │   │   ├── etc/services.d/   # Service management scripts
 │   │   └── usr/share/tempio/ # Configuration templates
 │   └── translations/         # UI field descriptions
+├── blocky-dev/               # Dev add-on (CI-managed, do not edit)
 ├── .github/workflows/        # CI/CD automation
 ├── scripts/                  # Build and release utilities
 └── README.md                 # This file
@@ -84,6 +85,18 @@ The add-on supports two configuration modes:
 2. **Custom Config Mode** - Use a custom Blocky YAML configuration file for advanced features
 
 See the [documentation](./blocky/README.md#configuration) for details.
+
+## Development Channel
+
+A separate **Blocky (Dev)** addon is auto-deployed from the latest `main` branch on every push that changes `blocky/`. It lives in the `blocky-dev/` directory.
+
+Key differences from the stable addon:
+- **Local builds** — HA builds the Docker image locally from the Dockerfile (no pre-built GHCR images)
+- **Auto-versioned** — version is set to `dev-<commit SHA>` on each push
+- **CI-managed** — do not edit `blocky-dev/` manually; changes are overwritten by the `Deploy Dev` workflow
+- **Same ports** — uses the same default ports (53, 4000) as stable; only one addon can run at a time
+
+To use it, add this repository to your HA instance — both "Blocky" and "Blocky (Dev)" will appear in the add-on store.
 
 ## Contributing
 
@@ -99,7 +112,7 @@ If you encounter problems or have feature requests, please [open an issue](https
 
 ### Development
 
-For development setup and guidelines, see [CLAUDE.md](./blocky/CLAUDE.md).
+For development setup and guidelines, see [CLAUDE.md](./CLAUDE.md).
 
 This project uses:
 - **Conventional Commits** for commit messages

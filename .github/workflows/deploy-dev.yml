@@ -1,0 +1,49 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "blocky/**"
+      - ".github/workflows/deploy-dev.yml"
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync Dev Addon
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Sync blocky → blocky-dev
+        run: rsync -a --delete blocky/ blocky-dev/
+
+      - name: Patch blocky-dev/config.yaml
+        run: |
+          set -euo pipefail
+          cfg=blocky-dev/config.yaml
+          sed -i 's/^name: Blocky$/name: Blocky (Dev)/' "$cfg"
+          sed -i 's/^slug: blocky$/slug: blocky_dev/' "$cfg"
+          sed -i "s/^version: .*/version: dev-${GITHUB_SHA::7}/" "$cfg"
+          sed -i '/^image:/d' "$cfg"
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add blocky-dev/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git pull --rebase
+          git commit -m "chore: sync blocky-dev from blocky @ ${GITHUB_SHA::7} [skip ci]"
+          git push
