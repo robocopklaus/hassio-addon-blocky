@@ -24,6 +24,9 @@ upstreams:
 {{- if .upstreams.timeout }}
   timeout: {{ .upstreams.timeout | quote }}
 {{- end }}
+{{- if .upstreams.start_verify }}
+  startVerifyUpstream: true
+{{- end }}
 {{- if .upstreams.user_agent }}
   userAgent: {{ .upstreams.user_agent | quote }}
 {{- end }}
