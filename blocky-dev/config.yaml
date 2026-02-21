@@ -1,5 +1,5 @@
 name: Blocky (Dev)
-version: dev-b5f25d3
+version: dev-056b50d
 slug: blocky_dev
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
@@ -32,6 +32,7 @@ options:
     init_strategy: blocking
     strategy: parallel_best
     timeout: 2s
+    start_verify: false
   bootstrap:
     dns:
       - upstream: 1.1.1.1
@@ -119,6 +120,7 @@ schema:
     init_strategy: list(blocking|failOnError|fast)?
     strategy: list(parallel_best|random|strict)?
     timeout: str?
+    start_verify: bool?
     user_agent: str?
   bootstrap:
     dns:

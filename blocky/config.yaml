@@ -33,6 +33,7 @@ options:
     init_strategy: blocking
     strategy: parallel_best
     timeout: 2s
+    start_verify: false
   bootstrap:
     dns:
       - upstream: 1.1.1.1
@@ -120,6 +121,7 @@ schema:
     init_strategy: list(blocking|failOnError|fast)?
     strategy: list(parallel_best|random|strict)?
     timeout: str?
+    start_verify: bool?
     user_agent: str?
   bootstrap:
     dns:
