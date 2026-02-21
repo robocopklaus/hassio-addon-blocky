@@ -21,6 +21,12 @@ configuration:
         name: Timeout
         description: >-
           Maximum time to wait for a response from upstream DNS servers before considering them unreachable. Controls how long Blocky waits before marking an upstream resolver as failed and trying the next one. Format: duration string like 2s (2 seconds), 5s (5 seconds), or 500ms (500 milliseconds). Default: 2s if not specified. Increase for slow or distant resolvers (satellite internet, VPN), decrease for faster failure detection in local networks.
+      start_verify:
+        name: Verify Upstreams on Start
+        description: >-
+          When enabled, Blocky verifies that configured upstream DNS servers are
+          reachable during startup. If no upstream is reachable, Blocky will fail
+          to start instead of running with broken DNS resolution.
       user_agent:
         name: User Agent
         description: >-
