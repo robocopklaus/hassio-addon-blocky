@@ -35,6 +35,12 @@ if bashio::config.true 'custom_config'; then
             exit 1
         fi
 
+        if ! blocky validate --config "${ADDON_CONFIG_PATH}/config.yml"; then
+            bashio::log.fatal "Generated initial configuration is invalid"
+            rm -f "${ADDON_CONFIG_PATH}/config.yml"
+            exit 1
+        fi
+
         bashio::log.info "Initial config created. You can now customize /addon_config/<repository>_blocky/config.yml"
     fi
 else
@@ -50,6 +56,11 @@ else
 
     if [ ! -f "${ADDON_CONFIG_PATH}/config.yml" ] || [ ! -s "${ADDON_CONFIG_PATH}/config.yml" ]; then
         bashio::log.fatal "Configuration file was not created or is empty"
+        exit 1
+    fi
+
+    if ! blocky validate --config "${ADDON_CONFIG_PATH}/config.yml"; then
+        bashio::log.fatal "Generated configuration is invalid"
         exit 1
     fi
 fi
