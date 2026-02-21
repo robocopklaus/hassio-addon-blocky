@@ -1,5 +1,5 @@
 name: Blocky (Dev)
-version: dev-e36da10
+version: dev-6da8b94
 slug: blocky_dev
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
@@ -176,11 +176,11 @@ schema:
   caching:
     min_time: str?
     max_time: str?
-    max_items_count: int?
+    max_items_count: int(0,)?
     prefetching: bool?
     prefetch_expires: str?
-    prefetch_threshold: int?
-    prefetch_max_items_count: int?
+    prefetch_threshold: int(0,)?
+    prefetch_max_items_count: int(0,)?
     cache_time_negative: str?
     exclude:
       - str
@@ -188,9 +188,9 @@ schema:
     address: str?
     username: str?
     password: password?
-    database: int?
+    database: int(0,15)?
     required: bool?
-    connection_attempts: int?
+    connection_attempts: int(1,)?
     connection_cooldown: str?
   prometheus:
     enable: bool?
@@ -199,12 +199,12 @@ schema:
     type: list(|csv|csv-client|console|mysql|postgresql|timescale)?
     target: str?
     db_host: str?
-    db_port: int?
+    db_port: int(1,65535)?
     db_username: str?
     db_password: password?
     db_database: str?
-    log_retention_days: int?
-    creation_attempts: int?
+    log_retention_days: int(0,)?
+    creation_attempts: int(1,)?
     creation_cooldown: str?
     fields:
       - str
