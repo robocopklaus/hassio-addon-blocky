@@ -200,7 +200,7 @@ schema:
     type: list(|csv|csv-client|console|mysql|postgresql|timescale)?
     target: str?
     db_host: str?
-    db_port: int(1,65535)?
+    db_port: int(0,65535)?
     db_username: str?
     db_password: password?
     db_database: str?
