@@ -66,9 +66,26 @@ if bashio::config.has_value 'query_log.target'; then
     QUERY_LOG_TYPE=$(bashio::config 'query_log.type')
 
     if [[ "${QUERY_LOG_TYPE}" == "csv" ]] || [[ "${QUERY_LOG_TYPE}" == "csv-client" ]]; then
-        bashio::log.info "Creating query log directory: ${QUERY_LOG_TARGET}"
-        if ! mkdir -p "${QUERY_LOG_TARGET}"; then
-            bashio::log.warning "Failed to create query log directory: ${QUERY_LOG_TARGET}"
+        # Validate target path to prevent directory traversal
+        if [[ "${QUERY_LOG_TARGET}" == *".."* ]]; then
+            bashio::log.warning "Query log target contains '..': ${QUERY_LOG_TARGET}"
+            bashio::log.warning "Path traversal is not allowed. Skipping directory creation."
+        elif [[ "${QUERY_LOG_TARGET}" != /config/* ]]; then
+            bashio::log.warning "Query log target must be under /config/: ${QUERY_LOG_TARGET}"
+            bashio::log.warning "Skipping directory creation."
+        else
+            bashio::log.info "Creating query log directory: ${QUERY_LOG_TARGET}"
+            if mkdir -p "${QUERY_LOG_TARGET}"; then
+                # Verify canonical path stays within /config/ (catches symlink attacks)
+                CANONICAL_PATH=$(realpath "${QUERY_LOG_TARGET}")
+                if [[ "${CANONICAL_PATH}" != /config && "${CANONICAL_PATH}" != /config/* ]]; then
+                    bashio::log.warning "Query log directory resolves outside /config/: ${CANONICAL_PATH}"
+                    bashio::log.warning "Removing directory and skipping."
+                    rmdir "${QUERY_LOG_TARGET}" 2>/dev/null
+                fi
+            else
+                bashio::log.warning "Failed to create query log directory: ${QUERY_LOG_TARGET}"
+            fi
         fi
     fi
 fi
