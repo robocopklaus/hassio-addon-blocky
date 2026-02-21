@@ -1,0 +1,33 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Handle Blocky service shutdown
+# Take down the S6 supervision tree when blocky fails
+# s6-overlay docs: https://github.com/just-containers/s6-overlay
+# ==============================================================================
+
+declare APP_EXIT_CODE=${1}
+
+# Exit code handling:
+# - 0: Clean shutdown (normal)
+# - 256: Signals are encoded as 256 + signal number (e.g., SIGTERM = 256 + 15 = 271)
+#        Exit code 256 itself means abnormal exit without signal
+# - Other: Application error or crash
+#
+# For exit code 0 or 256, allow service restart
+# For other codes, halt the add-on to prevent restart loops
+
+if [[ "${APP_EXIT_CODE}" -eq 0 ]]; then
+  bashio::log.info "Service stopped cleanly (exit code 0)"
+  exit 0
+fi
+
+if [[ "${APP_EXIT_CODE}" -ge 256 ]]; then
+  bashio::log.info "Service stopped via signal-derived exit code ${APP_EXIT_CODE}"
+  exit 0
+fi
+
+bashio::log.warning "Halt add-on with exit code ${APP_EXIT_CODE}"
+bashio::log.warning "Blocky exited unexpectedly. Check logs for errors."
+
+echo "${APP_EXIT_CODE}" > /run/s6-linux-init-container-results/exitcode
+exec /run/s6/basedir/bin/halt

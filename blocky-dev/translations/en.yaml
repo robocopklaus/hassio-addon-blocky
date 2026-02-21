@@ -1,0 +1,389 @@
+---
+configuration:
+  upstreams:
+    name: Upstream DNS Servers
+    description: >-
+      External DNS resolvers that Blocky queries to resolve DNS requests after checking blocks and cache. At least one upstream is required for operation. Supports multiple protocols (standard DNS, DNS-over-HTTPS, DNS-over-TLS) and can be organized into groups to route different clients through different resolvers. Blocky intelligently distributes queries across configured upstreams using various strategies to balance speed, privacy, and reliability.
+    fields:
+      groups:
+        name: Groups
+        description: >-
+          Groups of upstream DNS servers to use for DNS queries.
+      init_strategy:
+        name: Init Strategy
+        description: >-
+          Tests the configured resolvers for each group on initialization. Strategies: blocking (default, initialization completes before DNS starts, errors are logged but continues if possible), failOnError (like blocking but exits on failure), or fast (DNS starts immediately, initialization happens in background).
+      strategy:
+        name: Strategy
+        description: >-
+          Determines how requests are forwarded to upstream DNS servers. Strategies: parallel_best (default, queries 2 random resolvers and returns fastest answer), random (queries one random resolver, better privacy but slower), or strict (queries resolvers in order sequentially).
+      timeout:
+        name: Timeout
+        description: >-
+          Maximum time to wait for a response from upstream DNS servers before considering them unreachable. Controls how long Blocky waits before marking an upstream resolver as failed and trying the next one. Format: duration string like 2s (2 seconds), 5s (5 seconds), or 500ms (500 milliseconds). Default: 2s if not specified. Increase for slow or distant resolvers (satellite internet, VPN), decrease for faster failure detection in local networks.
+      user_agent:
+        name: User Agent
+        description: >-
+          Custom User-Agent header for DNS-over-HTTPS (DoH) requests. Only applies to HTTPS upstream resolvers (https://...). Some DNS providers require or prefer specific User-Agent strings for identification, rate limiting, or analytics purposes. Leave empty to use Blocky's default User-Agent. Has no effect on DNS-over-TLS (tcp-tls:...) or plain DNS resolvers. Example: "MyNetwork-DNS/1.0" or "Blocky-HomeAssistant".
+  
+  bootstrap:
+    name: Bootstrap DNS
+    description: >-
+      Bootstrap DNS servers used to resolve hostnames in DoH/DoT upstream configurations. When your upstream DNS uses domain names (like tcp-tls:dns.google), these bootstrap servers resolve those hostnames first, breaking the circular dependency. Use simple IP-based DNS servers for maximum reliability. Only required if your upstream DNS servers use hostnames instead of IPs.
+    fields:
+      dns:
+        name: DNS Resolvers
+        description: >-
+          List of bootstrap DNS resolvers. Each entry defines an upstream DNS server used to resolve hostnames in your primary upstream configuration. Only needed if your upstream DNS servers use hostnames (e.g., tcp-tls:dns.google) instead of IP addresses.
+        fields:
+          upstream:
+            name: Upstream Resolver
+            description: >-
+              DNS resolver in format [net:]host:[port][/path]. Supported protocols: tcp+udp (default, port 53), tcp-tls (DNS-over-TLS, port 853), https (DNS-over-HTTPS, port 443). Examples: 1.1.1.1 (plain IP), tcp+udp:8.8.8.8:53 (explicit TCP/UDP), tcp-tls:1.1.1.1:853 (DoT with IP), https://1.1.1.1/dns-query (DoH with IP). For best reliability, use IP-based resolvers rather than hostnames to avoid circular dependencies.
+          ips:
+            name: IP Addresses
+            description: >-
+              List of IP addresses for the upstream resolver. REQUIRED when using DoT (tcp-tls:) or DoH (https://) upstreams with hostnames. Optional for IP-based upstreams. Example: When using tcp-tls:dns.example.com, provide the IP address(es) [123.123.123.123] to resolve the hostname. Not needed for upstreams like tcp-tls:1.1.1.1 or https://1.1.1.1/dns-query that already use IPs.
+  
+  filtering:
+    name: Filtering
+    description: >-
+      Drop DNS queries of specific record types, returning empty answers immediately. Useful for forcing IPv4-only resolution (by blocking AAAA queries) in networks without IPv6 support, or preventing specific DNS record lookups for privacy or performance reasons.
+    fields:
+      query_types:
+        name: Query Types to Filter
+        description: >-
+          List of DNS record types to drop. Common types: A (IPv4 addresses), AAAA (IPv6 addresses), MX (mail servers), TXT (text records), SRV (services), NS (nameservers), CNAME (aliases), PTR (reverse DNS). Most common use case: Add "AAAA" to force IPv4-only resolution. Filtered queries receive empty responses and bypass all other Blocky features (upstream DNS, caching, blocking). Leave empty to disable filtering.
+
+  fqdn_only:
+    name: FQDN Only
+    description: >-
+      Restrict DNS resolution to fully qualified domain names (FQDNs) only. When enabled, Blocky immediately rejects queries for unqualified hostnames (single-word names without dots) with NXDOMAIN. This operates before all other resolution features and will break resolution for names like "nas" or "printer" unless they include a domain suffix (e.g., "nas.local"). Only enable in domain environments where strict FQDN enforcement is required. Most home networks should keep this disabled (default).
+    fields:
+      enable:
+        name: Enable FQDN-Only Mode
+        description: >-
+          Activate FQDN-only filtering. When true, only queries containing at least one dot and a proper domain suffix are processed. Unqualified hostnames return NXDOMAIN immediately. WARNING: This will break single-word hostname resolution used by most home networks. Default: false (disabled).
+
+  custom_dns:
+    name: Custom DNS
+    description: >-
+      Define custom DNS responses for local domains without forwarding to upstream servers. Use this to assign static IP addresses to hostnames on your network (e.g., printer.lan → 192.168.1.100). Blocky acts as an authoritative DNS server for these entries, with automatic reverse DNS (PTR) and subdomain resolution.
+    fields:
+      mapping:
+        name: DNS Mappings
+        description: >-
+          Hostname-to-IP address mappings for local devices. Each entry creates DNS records that Blocky answers authoritatively. Automatic features: reverse DNS (PTR records), subdomain resolution (any.prefix.hostname resolves to hostname's IP), and CNAME support (specify another hostname instead of IP).
+        fields:
+          hostname:
+            name: Hostname
+            description: >-
+              Fully qualified domain name to resolve. Examples: printer.lan, nas.local, router.home. Should include your local domain suffix. Subdomains automatically resolve (e.g., sub.printer.lan resolves to printer.lan's IP).
+          ips:
+            name: IP Addresses or CNAME
+            description: >-
+              IP address(es) or CNAME target. Formats: Single IPv4 (192.168.1.10), Single IPv6 (2001:db8::1), Dual-stack comma-separated (192.168.1.10,2001:db8::1), or hostname for CNAME (nas.lan). No spaces around commas.
+      rewrite:
+        name: Domain Rewriting Rules
+        description: >-
+          Rewrite domain queries before customDNS resolution. Transforms queries from one domain to another before lookup in the mapping section. Example: Rewrite "*.home" to "*.lan" so queries for printer.home resolve using printer.lan's mapping. Different from conditional.rewrite which applies to conditional DNS, not custom DNS.
+        fields:
+          source:
+            name: Source Domain
+            description: >-
+              Domain pattern to rewrite. Examples: "home", "example.com", "internal.corp". All queries containing this domain will be rewritten to the target domain before customDNS mapping lookup.
+          target:
+            name: Target Domain
+            description: >-
+              Replacement domain. The source domain is replaced with this value before customDNS resolution. Examples: "lan", "local", "internal.local". The rewritten query then looks up in the mapping section.
+      custom_ttl:
+        name: Custom TTL
+        description: >-
+          Time-To-Live for custom DNS entries. Controls how long clients cache these responses. Examples: 1h (1 hour, default), 30m (30 minutes), 3600s (3600 seconds). Higher values reduce DNS queries but delay updates when you change mappings.
+      filter_unmapped_types:
+        name: Filter Unmapped Types
+        description: >-
+          Return empty results for DNS record types not explicitly defined in your mappings. When true (default), if you map example.lan to an IPv4 address (A record) but someone queries for IPv6 (AAAA), Blocky returns empty instead of forwarding to upstream. Set false to forward unmapped types upstream.
+
+  conditional:
+    name: Conditional DNS
+    description: >-
+      Route DNS queries for specific domains to designated resolvers instead of using default upstream servers. Essential for accessing local network devices (router DHCP hostnames), split-DNS scenarios (corporate VPN), and reverse DNS lookups. Unlike Custom DNS which provides direct IP answers, conditional DNS forwards queries to another DNS server that knows the answers.
+    fields:      
+      rewrite:
+        name: Domain Rewriting Rules
+        description: >-
+          Rewrite domain names before applying conditional resolution. Example: rewrite 'example.com' to 'fritz.box' so queries for 'server.example.com' become 'server.fritz.box' before routing to the conditional resolver. Applied before mapping lookups.
+        fields:
+          source:
+            name: Source Domain
+            description: >-
+              Domain pattern to match and replace. Examples: 'example.com', 'public.corp', 'home'. Any query containing this pattern will have it replaced with the target domain.
+          target:
+            name: Target Domain
+            description: >-
+              Replacement domain. The source domain pattern is replaced with this value before conditional resolution. Examples: 'fritz.box', 'internal.corp', 'lan'.
+      mapping:
+        name: Domain-to-Resolver Mappings
+        description: >-
+          Map domains to specific DNS resolvers. All subdomains automatically inherit the mapping (e.g., 'fritz.box' matches 'www.fritz.box'). Use special domain '.' to match all unqualified hostnames (single-word names without dots). Supports reverse DNS via 'in-addr.arpa' notation.
+        fields:
+          domain:
+            name: Domain Pattern
+            description: >-
+              Domain to match for conditional resolution. Examples: 'fritz.box' (router domain), 'local' (all .local domains), 'company.internal' (corporate network), '178.168.192.in-addr.arpa' (reverse DNS for 192.168.178.x), '.' (special - matches all unqualified hostnames like 'nas' or 'printer'). All subdomains automatically match.
+          resolvers:
+            name: DNS Resolvers
+            description: >-
+              DNS server(s) to use for this domain. Supports multiple resolvers for redundancy. Formats: Plain IP (192.168.1.1), IP with port (192.168.1.1:5353), TCP/UDP (tcp+udp:192.168.1.1), DNS-over-TLS (tcp-tls:dns.example.com:853), DNS-over-HTTPS (https://192.168.1.1/dns-query). Typically your router's IP for local domains.
+      fallback_upstream:
+        name: Fallback to Upstream
+        description: >-
+          Controls behavior when a conditional resolver returns an empty answer. When false (default), Blocky returns the empty result to the client. When true, Blocky falls back to normal upstream resolvers if the conditional resolver has no answer. Enable this for reliability when conditional resolvers might not have all records.
+
+  client_lookup:
+    name: Client Name Lookup
+    description: >-
+      Resolve client IP addresses into friendly names using reverse DNS and optional static mappings. Useful for readable logs, metrics, and client-based policies.
+    fields:
+      upstream:
+        name: DNS Server for Client Lookup
+        description: >-
+          DNS resolver used for reverse lookups (PTR). Usually your router or DHCP server IP (for example 192.168.1.1). Leave empty to disable reverse lookups.
+      single_name_order:
+        name: Single Name Order
+        description: >-
+          Priority order when reverse DNS returns multiple names. Specify 1-based ordinal positions (e.g., [2, 1] means prefer second name if present, otherwise first name). Leave empty to use first name returned. Example: router returns ["laptop-wifi", "laptop-ethernet"], using [2, 1] selects "laptop-ethernet" as the preferred name.
+      clients:
+        name: Custom Client Mapping
+        description: >-
+          Override or define client names when reverse DNS is missing. Each entry maps one name to one or more IP addresses.
+        fields:
+          name:
+            name: Client Name
+            description: >-
+              Friendly name to assign to the device, e.g. laptop, living-room-tv.
+          addresses:
+            name: IP Addresses
+            description: >-
+              One or more IPv4 or IPv6 addresses for this client. Add separate values for each address (no CIDR).
+
+  blocking:
+    name: Blocking & Allowlists
+    description: >-
+      Configure which domain lists Blocky downloads, how they are grouped, and which client groups use them. Denylists block domains from external or local sources, while allowlists restore access to specific domains.
+    fields:
+      denylists:
+        name: Denylists
+        description: >-
+          Collections of block list sources (URLs or local file paths) that Blocky merges and applies to clients. Each denylist entry creates a named group you can assign to client groups.
+        fields:
+          name:
+            name: Denylist Name
+            description: >-
+              Identifier for this denylist group (e.g., ads, tracking, malware). Use the same name when assigning lists to client groups.
+          sources:
+            name: Sources
+            description: >-
+              URLs or local file paths to block lists. Examples include https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts or /config/allowlist.txt. Blocky downloads and merges all sources under this denylist.
+      allowlists:
+        name: Allowlists
+        description: >-
+          Domain allowlists (whitelists) that unblock domains otherwise blocked by your denylists. Useful for restoring critical services or exceptions.
+        fields:
+          name:
+            name: Allowlist Name
+            description: >-
+              Identifier for this allowlist group (e.g., ads_exceptions, work). Reference this name in the client group assignments.
+          sources:
+            name: Sources
+            description: >-
+              URLs or local file paths containing newline-separated domains. Local files should live under /config/addon_config/<repository>_blocky/.
+      client_groups_block:
+        name: Client Group Assignments
+        description: >-
+          Map client groups (defined in Blocky as upstream defaults) to the denylists they should use. Blocky applies all referenced denylists to the clients in each group.
+        fields:
+          name:
+            name: Client Group
+            description: >-
+              Client group name to apply blocking to. Use default for the global group or match names defined under Blocky's clientGroups configuration.
+          lists:
+            name: Denylist Names
+            description: >-
+              Denylist identifiers to apply to this client group. You can reference multiple denylists (e.g., ads, tracking) to combine their sources.
+      block_type:
+        name: Block Response Type
+        description: >-
+          Controls how Blocky responds to blocked DNS queries. Options: zeroIp (default, returns 0.0.0.0 for IPv4 and :: for IPv6) or nxDomain (returns NXDOMAIN indicating domain doesn't exist). Only affects A and AAAA queries; other record types automatically receive NXDOMAIN when blocked. For advanced block responses like custom IP addresses, enable Custom Configuration Mode. Default: zeroIp.
+      block_ttl:
+        name: Block Response TTL
+        description: >-
+          Time-To-Live (cache duration) for blocked domain responses. Controls how long clients cache blocked responses before re-querying. Format: duration string like 10s (10 seconds), 5m (5 minutes), or 6h (6 hours). Default: 6h. Lower values (e.g., 10s, 1m) allow faster recovery after removing domains from blocklists; higher values (e.g., 12h, 24h) reduce DNS query load for frequently blocked domains. Only applies when using zeroIp or nxDomain block types. Default: 6h.
+
+  caching:
+    name: Caching
+    description: >-
+      Configure DNS response caching to reduce upstream queries and improve network performance. Blocky caches query results according to their TTL values from upstream DNS servers. Leave options empty to use Blocky's default TTL-based caching behavior.
+    fields:
+      min_time:
+        name: Minimum Cache Time
+        description: >-
+          Minimum cache duration for DNS responses. Overrides shorter TTLs from upstream responses. When set, DNS responses are cached for at least this duration regardless of their original TTL. Format: duration string like 5m (5 minutes), 10m (10 minutes), 1h (1 hour). Leave empty to respect upstream TTL values (recommended for most users). Longer values reduce upstream queries but may cache stale records.
+      max_time:
+        name: Maximum Cache Time
+        description: >-
+          Maximum cache duration for DNS responses. Overrides longer TTLs from upstream responses. When set, prevents caching records longer than this duration even if upstream TTL is higher. Format: duration string like 30m (30 minutes), 1h (1 hour), 2h (2 hours). Leave empty to respect upstream TTL values (recommended for most users). Shorter values provide more up-to-date records but increase upstream queries.
+      prefetching:
+        name: Enable Prefetching
+        description: >-
+          Automatically refresh cache for frequently queried domains before TTL expires. When enabled, Blocky tracks popular domains and proactively refreshes them, ensuring cached responses are always available. Improves response times for commonly accessed domains but slightly increases upstream queries. Default: false (disabled).
+      cache_time_negative:
+        name: Negative Result Cache Time
+        description: >-
+          How long to cache negative results like NXDOMAIN responses or empty answers. Controls caching duration for domains that don't exist. Format: duration string like 10m (10 minutes), 30m (30 minutes), 1h (1 hour). Set to -1 to disable caching of negative results entirely (useful for troubleshooting). Leave empty to use Blocky's default (30 minutes). Default: empty (Blocky default 30m).
+      max_items_count:
+        name: Maximum Cache Items
+        description: >-
+          Maximum number of DNS responses to cache. Caps total cached entries to limit RAM usage on constrained systems (Raspberry Pi, low-memory devices). When limit is reached, least recently used entries are evicted. Format: integer (e.g., 1000, 5000, 10000). Set to 0 (default) for unlimited caching. Only set this if experiencing memory issues - most systems don't need this limit. Typical values: 1000-5000 for very constrained devices, 10000+ for normal use. Default: 0 (unlimited).
+      prefetch_expires:
+        name: Prefetch Tracking Window
+        description: >-
+          Time window for tracking frequently queried domains for prefetching. Only queries within this window count toward the prefetch threshold. Domains not queried within this period are removed from prefetch tracking. Format: duration string like 1h (1 hour), 2h (2 hours, default), 4h (4 hours), 24h (24 hours). Longer values track domains over extended periods but use more memory. Shorter values focus on recently active domains. Only applies when prefetching is enabled. Default: 2h.
+      prefetch_threshold:
+        name: Prefetch Query Threshold
+        description: >-
+          Minimum number of queries required before a domain is marked for prefetching. Domains must be queried at least this many times within the prefetch tracking window to be automatically refreshed. Format: integer (e.g., 3, 5, 10). Higher values (10+) limit prefetching to very popular domains, reducing upstream queries but potentially missing some domains. Lower values (3-5) prefetch more domains for better cache hit rates. Default: 5. Only applies when prefetching is enabled.
+      prefetch_max_items_count:
+        name: Maximum Prefetch Domains
+        description: >-
+          Maximum number of domains to track for prefetching. Caps the prefetch list size to limit memory usage. When limit is reached, least frequently queried domains are removed from prefetch tracking. Format: integer (e.g., 100, 500, 1000). Set to 0 (default) for unlimited tracking. Only relevant when prefetching is enabled. Typical values: 100-500 for constrained devices, 1000+ for normal systems. Default: 0 (unlimited).
+      exclude:
+        name: Cache Exclusion Patterns
+        description: >-
+          Regex patterns for domains to exclude from caching. Matching domains bypass cache entirely and are always forwarded to upstream DNS. Useful for local domains (*.lan, *.local), dynamic DNS services, or domains that change frequently. Format: regex patterns like /.*\.lan$/ (all .lan domains), /.*\.local$/ (all .local domains), /^dynamic\./ (domains starting with 'dynamic.'). Leave empty to cache all domains (default). Examples: /.*\.lan$/, /.*\.local$/, /.*\.home$/. Default: empty (cache everything).
+
+  redis:
+    name: Redis
+    description: >-
+      Enable Redis integration to synchronize cache and blocking state across multiple Blocky instances. Useful for distributed deployments where multiple DNS servers need to share the same cache and blocking policies. Leave address empty to disable Redis (default for most users).
+    fields:
+      address:
+        name: Redis Server Address
+        description: >-
+          Redis server endpoint in hostname:port or IP:port format (e.g., redis:6379 or 192.168.1.10:6379). When using Redis Sentinel for high availability, specify the Sentinel master name. Leave empty to disable Redis integration (recommended for single-instance deployments). Default: empty (disabled).
+      username:
+        name: Username
+        description: >-
+          Redis authentication username for ACL-based authentication (Redis 6+). Required only if your Redis server uses username/password authentication. Leave empty if authentication is not required or only password authentication is used. Default: empty.
+      password:
+        name: Password
+        description: >-
+          Redis authentication password. Required if your Redis server requires authentication. This field is securely encrypted in the Home Assistant UI. Leave empty for unauthenticated connections. Default: empty.
+      database:
+        name: Database Number
+        description: >-
+          Redis database number to use (0-15). Redis supports 16 databases by default. Use different database numbers to isolate Blocky data from other applications using the same Redis server. Default: 0.
+      required:
+        name: Required Connection
+        description: >-
+          Controls Blocky startup behavior when Redis is unavailable. When enabled (true), Blocky refuses to start if Redis connection fails, ensuring state synchronization. When disabled (false, default), Blocky starts normally and operates without Redis if connection fails. Enable for HA deployments where synchronization is critical. Default: false.
+      connection_attempts:
+        name: Connection Attempts
+        description: >-
+          Maximum number of retry attempts when Redis is unreachable. Blocky attempts to connect this many times before giving up (if required=false) or failing to start (if required=true). Higher values provide more connection resilience but increase startup time on failure. Default: 3.
+      connection_cooldown:
+        name: Connection Cooldown
+        description: >-
+          Time interval between connection retry attempts. Format: duration string like 1s (1 second), 3s (3 seconds), 5s (5 seconds). Controls how long Blocky waits before retrying after a failed Redis connection attempt. Default: 1s.
+
+  prometheus:
+    name: Prometheus
+    description: >-
+      Configure Prometheus metrics endpoint for monitoring. Blocky can expose various metrics for Prometheus including DNS query statistics, cache performance, and blocking activity. Requires HTTP listener on port 4000.
+    fields:
+      enable:
+        name: Enable Metrics
+        description: >-
+          Enable or disable the Prometheus metrics endpoint. When enabled, Blocky exposes metrics at http://<home-assistant-ip>:4000/metrics for scraping by Prometheus monitoring systems. Use for monitoring DNS query statistics, cache performance, and blocking activity. Integrates with Grafana for dashboard visualization. Default: false (disabled).
+      path:
+        name: Metrics Path
+        description: >-
+          URL path where Prometheus metrics are exposed. Standard convention is /metrics but can be customized if needed (e.g., /prometheus, /custom-metrics). Only takes effect when metrics are enabled. Default: /metrics.
+
+  query_log:
+    name: Query Logging
+    description: >-
+      Record DNS queries and responses to various storage backends for analysis, debugging, and compliance. WARNING: Query logs contain sensitive information about DNS requests from your network. Enable only when needed and ensure proper data protection. Logged data includes client IPs, requested domains, and response details.
+    fields:
+      type:
+        name: Log Type
+        description: >-
+          Storage backend for query logs. Options: none (disabled, default - no logging), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: none (disabled).
+      target:
+        name: Target Directory
+        description: >-
+          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use /config/query_logs for persistence across restarts. Directory is created automatically if it doesn't exist. Accessible via /addon_config/<repository>_blocky/query_logs/ on the Home Assistant host. Leave empty to use Blocky's default location. Not used for console or database log types. Example: /config/query_logs
+      db_host:
+        name: Database Host
+        description: >-
+          Hostname or IP address of the database server. Only required for database log types (mysql, postgresql, timescale). Examples: localhost, 192.168.1.100, db.example.com. Must be accessible from the Blocky container. Ignored for csv, csv-client, and console types. Example: 192.168.1.50
+      db_port:
+        name: Database Port
+        description: >-
+          Port number for database connection. Only required for database log types. Leave empty to use default ports: 3306 for MySQL/MariaDB, 5432 for PostgreSQL/Timescale. Specify custom port if your database uses non-standard configuration. Ignored for csv, csv-client, and console types. Default: 3306 (MySQL), 5432 (PostgreSQL/Timescale).
+      db_username:
+        name: Database Username
+        description: >-
+          Database authentication username. Only required for database log types (mysql, postgresql, timescale). User must have INSERT, CREATE TABLE privileges on the target database. Ignored for csv, csv-client, and console types. Example: blocky_user
+      db_password:
+        name: Database Password
+        description: >-
+          Database authentication password. Only required for database log types. This field is securely encrypted in the Home Assistant UI. Leave empty if database doesn't require password authentication. Ignored for csv, csv-client, and console types.
+      db_database:
+        name: Database Name
+        description: >-
+          Database name for storing query logs. Only required for database log types (mysql, postgresql, timescale). Blocky automatically creates necessary tables on first run. Database must exist and user must have appropriate permissions. Ignored for csv, csv-client, and console types. Example: blocky_query_log
+      log_retention_days:
+        name: Log Retention Days
+        description: >-
+          Automatic cleanup period for old query logs. Logs older than this many days are automatically deleted. Set to 0 (default) to disable automatic cleanup and retain logs indefinitely. Applies to all log types. Useful for managing disk space and compliance requirements. Format: integer days (e.g., 7, 30, 90). Default: 0 (no automatic cleanup). Example: 30 (keep 30 days of logs).
+      creation_attempts:
+        name: Creation Attempts
+        description: >-
+          Number of times to retry initializing the query log writer on startup if connection fails. Useful when database server starts slowly or CSV directory isn't immediately available. Blocky waits 'creation_cooldown' duration between attempts. Set higher (5-10) for unreliable database connections. Format: integer (e.g., 3, 5, 10). Default: 3.
+      creation_cooldown:
+        name: Creation Cooldown
+        description: >-
+          Time to wait between query log writer initialization attempts. Controls retry delay when initial connection fails. Format: duration string like 1s (1 second), 2s (2 seconds, default), 5s (5 seconds). Longer values give database/filesystem more time to become ready. Default: 2s.
+      fields:
+        name: Log Fields
+        description: >-
+          Select which data fields to include in query logs. Leave empty (default) to log all available fields. Options: clientIP (request origin IP address), clientName (resolved client identifier from clientLookup), responseReason (why this response was returned - cached, blocked, forwarded, etc.), responseAnswer (actual DNS answer returned), question (DNS query details - domain and record type), duration (query processing time in milliseconds). Limiting fields reduces log size and improves privacy. Default: empty (log all fields).
+      flush_interval:
+        name: Flush Interval
+        description: >-
+          How often to write buffered log entries to storage. Blocky batches log entries in memory and writes them in bulk for better performance. Format: duration string like 10s (10 seconds), 30s (30 seconds, default), 1m (1 minute). Lower values provide more real-time logging but increase I/O load. Higher values improve performance but risk losing recent logs on crash. Default: 30s.
+
+  log:
+    name: Logging
+    description: >-
+      Configure Blocky's logging behavior. Control log verbosity and privacy settings for DNS query logs.
+    fields:
+      level:
+        name: Log Level
+        description: >-
+          Controls logging verbosity. Levels: trace (most detailed, logs every DNS query and internal operation), debug (detailed diagnostics for troubleshooting), info (default, standard operational messages), warn (warnings and potential issues only), error (errors only). Use info for normal operation, debug/trace when troubleshooting issues.
+      timestamp:
+        name: Show Timestamps
+        description: >-
+          Include timestamps in Blocky's log output. Default is true (recommended). Home Assistant captures add-on output as a continuous log stream, so timestamps are essential for understanding when each event occurred. Only disable this if you have specialized logging requirements where timestamps are added by an external system. Default: true.
+      privacy:
+        name: Privacy Mode
+        description: >-
+          Obfuscates sensitive data in logs by replacing alphanumeric characters with asterisks (*). Affects DNS query domains and response data. WARNING: When disabled, full domain names and client IP addresses are logged in plaintext, exposing browsing habits of all network users. Even with privacy mode enabled, query metadata (timing, frequency, response types) may still reveal browsing patterns. Enable in shared environments or for compliance requirements (e.g., GDPR). When enabled, logs will show patterns like "query: *********" instead of actual domains. Default: true (enabled).
+
+  custom_config:
+    name: Custom Configuration Mode
+    description: >-
+      Enable custom configuration mode to manually edit Blocky's configuration file directly. When enabled, all Home Assistant UI options are ignored, and you must edit the YAML file at /addon_config/<repository>_blocky/config.yml. Use this for advanced Blocky features not available in the UI, such as per-client blocking rules, query logging, regex patterns, and custom DNS records. On first enable, the add-on generates an initial config from your current UI settings as a starting point. See documentation for full details. Default: false (use UI configuration).

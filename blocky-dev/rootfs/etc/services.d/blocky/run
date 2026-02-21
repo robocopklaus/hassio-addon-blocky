@@ -1,0 +1,44 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Start Blocky service
+# ==============================================================================
+
+declare -a options
+readonly CONFIG_FILE="/etc/blocky/config.yml"
+
+# Pre-flight checks
+bashio::log.info "Performing pre-flight checks..."
+
+# Check if config file exists
+if [ ! -f "${CONFIG_FILE}" ]; then
+    bashio::log.fatal "Configuration file not found: ${CONFIG_FILE}"
+    exit 1
+fi
+
+# Check if config file is readable
+if [ ! -r "${CONFIG_FILE}" ]; then
+    bashio::log.fatal "Configuration file is not readable: ${CONFIG_FILE}"
+    exit 1
+fi
+
+# Check if config file is not empty
+if [ ! -s "${CONFIG_FILE}" ]; then
+    bashio::log.fatal "Configuration file is empty: ${CONFIG_FILE}"
+    exit 1
+fi
+
+# Validate configuration against Blocky's schema
+bashio::log.info "Validating Blocky configuration..."
+if ! blocky validate --config "${CONFIG_FILE}"; then
+    bashio::log.fatal "Configuration validation failed: ${CONFIG_FILE}"
+    exit 1
+fi
+
+bashio::log.info "Pre-flight checks passed"
+bashio::log.info "Starting Blocky..."
+
+# Add configuration file
+options+=(--config "${CONFIG_FILE}")
+
+# Run Blocky
+exec blocky "${options[@]}"
