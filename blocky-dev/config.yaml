@@ -1,5 +1,5 @@
 name: Blocky (Dev)
-version: dev-899a9d3
+version: dev-b5f25d3
 slug: blocky_dev
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
