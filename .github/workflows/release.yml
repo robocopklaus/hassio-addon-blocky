@@ -78,7 +78,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -135,6 +134,20 @@ jobs:
             BUILD_DATE=${{ github.event.repository.updated_at }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke test amd64 image
+        run: |
+          set -euo pipefail
+          echo "::group::Running smoke tests"
+
+          # Verify Blocky binary runs
+          docker run --rm ${{ env.IMAGE_NAME }}:scan blocky version
+
+          # Verify Tempio is installed
+          docker run --rm ${{ env.IMAGE_NAME }}:scan tempio --version
+
+          echo "::endgroup::"
+          echo "::notice::Smoke tests passed"
 
       - name: Build and push architecture-specific images
         env:
