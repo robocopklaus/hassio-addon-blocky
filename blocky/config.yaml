@@ -74,8 +74,8 @@ options:
     block_type: zeroIp
     block_ttl: 6h
   caching:
-    min_time: 0m
-    max_time: 0m
+    min_time: ""
+    max_time: ""
     max_items_count: 0
     prefetching: false
     prefetch_expires: 2h
