@@ -163,8 +163,8 @@ jobs:
           # Verify Blocky binary runs
           docker run --rm --entrypoint blocky ${{ env.IMAGE_NAME }}:scan version
 
-          # Verify Tempio is installed
-          docker run --rm --entrypoint tempio ${{ env.IMAGE_NAME }}:scan --version
+          # Verify Tempio is installed (no dedicated --version flag; extract from help output)
+          docker run --rm --entrypoint sh ${{ env.IMAGE_NAME }}:scan -c "tempio --help 2>&1 | grep Version"
 
           echo "::endgroup::"
           echo "::notice::Smoke tests passed"

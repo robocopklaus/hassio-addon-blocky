@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- CI: Use grep-based version check for tempio smoke test (tempio has no `--version` flag)
+
 ## [3.2.0] - 2026-02-22
 
 ### Added
