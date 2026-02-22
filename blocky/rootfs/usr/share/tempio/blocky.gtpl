@@ -100,18 +100,25 @@ conditional:
 {{- end }}
 {{- end }}
 
+{{- if or .ecs.use_as_client .ecs.forward }}
+# EDNS Client Subnet
+ecs:
+  useAsClient: {{ .ecs.use_as_client }}
+  forward: {{ .ecs.forward }}
+{{- end }}
+
 {{- $clientLookup := .client_lookup }}
 {{- if $clientLookup }}
 {{- $upstream := $clientLookup.upstream }}
 {{- $singleOrder := $clientLookup.single_name_order }}
 {{- $clients := $clientLookup.clients }}
-{{- if or $upstream $singleOrder $clients }}
+{{- if or $upstream $clients }}
 # Client Name Lookup
 clientLookup:
 {{- if $upstream }}
   upstream: {{ $upstream | quote }}
 {{- end }}
-{{- if $singleOrder }}
+{{- if and $upstream $singleOrder }}
   singleNameOrder:
 {{- range $order := $singleOrder }}
     - {{ $order }}

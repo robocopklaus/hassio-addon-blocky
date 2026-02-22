@@ -9,8 +9,15 @@ readonly ADDON_CONFIG_PATH="/config"
 bashio::log.info "Configuring Blocky..."
 
 # Create config directories
-mkdir -p "${CONFIG_PATH}"
-mkdir -p "${ADDON_CONFIG_PATH}"
+if ! mkdir -p "${CONFIG_PATH}"; then
+    bashio::log.fatal "Failed to create runtime config directory: ${CONFIG_PATH}"
+    exit 1
+fi
+
+if ! mkdir -p "${ADDON_CONFIG_PATH}"; then
+    bashio::log.fatal "Failed to create persistent config directory: ${ADDON_CONFIG_PATH}"
+    exit 1
+fi
 
 # Check if custom configuration is enabled
 if bashio::config.true 'custom_config'; then
@@ -71,6 +78,11 @@ if ! cp "${ADDON_CONFIG_PATH}/config.yml" "${CONFIG_PATH}/config.yml"; then
     exit 1
 fi
 
+if ! chmod 600 "${ADDON_CONFIG_PATH}/config.yml" "${CONFIG_PATH}/config.yml"; then
+    bashio::log.fatal "Failed to set restrictive permissions on configuration files"
+    exit 1
+fi
+
 # Create query log directory if CSV logging is enabled
 if bashio::config.has_value 'query_log.target'; then
     QUERY_LOG_TARGET=$(bashio::config 'query_log.target')
@@ -79,23 +91,29 @@ if bashio::config.has_value 'query_log.target'; then
     if [[ "${QUERY_LOG_TYPE}" == "csv" ]] || [[ "${QUERY_LOG_TYPE}" == "csv-client" ]]; then
         # Validate target path to prevent directory traversal
         if [[ "${QUERY_LOG_TARGET}" == *".."* ]]; then
-            bashio::log.warning "Query log target contains '..': ${QUERY_LOG_TARGET}"
-            bashio::log.warning "Path traversal is not allowed. Skipping directory creation."
+            bashio::log.fatal "Query log target contains '..': ${QUERY_LOG_TARGET}"
+            bashio::log.fatal "Path traversal is not allowed for CSV query logs."
+            exit 1
         elif [[ "${QUERY_LOG_TARGET}" != /config/* ]]; then
-            bashio::log.warning "Query log target must be under /config/: ${QUERY_LOG_TARGET}"
-            bashio::log.warning "Skipping directory creation."
+            bashio::log.fatal "Query log target must be under /config/: ${QUERY_LOG_TARGET}"
+            exit 1
         else
             bashio::log.info "Creating query log directory: ${QUERY_LOG_TARGET}"
             if mkdir -p "${QUERY_LOG_TARGET}"; then
                 # Verify canonical path stays within /config/ (catches symlink attacks)
                 CANONICAL_PATH=$(realpath "${QUERY_LOG_TARGET}")
                 if [[ "${CANONICAL_PATH}" != /config && "${CANONICAL_PATH}" != /config/* ]]; then
-                    bashio::log.warning "Query log directory resolves outside /config/: ${CANONICAL_PATH}"
-                    bashio::log.warning "Removing directory and skipping."
-                    rmdir "${QUERY_LOG_TARGET}" 2>/dev/null
+                    bashio::log.fatal "Query log directory resolves outside /config/: ${CANONICAL_PATH}"
+                    exit 1
                 fi
             else
-                bashio::log.warning "Failed to create query log directory: ${QUERY_LOG_TARGET}"
+                bashio::log.fatal "Failed to create query log directory: ${QUERY_LOG_TARGET}"
+                exit 1
+            fi
+
+            if [ ! -w "${QUERY_LOG_TARGET}" ]; then
+                bashio::log.fatal "Query log directory is not writable: ${QUERY_LOG_TARGET}"
+                exit 1
             fi
         fi
     fi
