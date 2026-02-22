@@ -18,6 +18,13 @@ Configure external DNS resolvers that Blocky queries after checking blocks and c
   - `random`: Queries single random resolver (better privacy)
   - `strict`: Queries resolvers sequentially in order
 - **Timeout**: Max wait time for upstream response (default: `2s`)
+- **Init Strategy**:
+  - `blocking` (default): startup waits for upstream initialization
+  - `failOnError`: startup fails if initialization fails
+  - `fast`: startup continues while upstream checks run in background
+- **Verify Upstreams on Start** (`start_verify`): if enabled, Blocky refuses startup when no upstream is reachable.
+
+If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup stalls and enable `start_verify` only when strict startup guarantees are desired.
 
 ### Bootstrap DNS
 
@@ -89,6 +96,15 @@ conditional:
         - 192.168.1.1
 ```
 
+### EDNS Client Subnet (ECS)
+
+Optional ECS forwarding controls for upstream DNS requests.
+
+- **use_as_client**: sends client subnet information to upstreams when available
+- **forward**: forwards ECS received from downstream clients
+
+ECS can improve CDN localization but may reduce privacy by sharing network location hints.
+
 ### Caching
 
 DNS response caching reduces upstream queries and improves performance.
@@ -112,11 +128,15 @@ Record DNS queries to various backends. **WARNING:** Logs contain sensitive netw
 - `mysql`, `postgresql`, `timescale`: External databases
 
 **Configuration:**
-- **Target**: Directory for CSV files (e.g., `/config/query_logs`)
+- **Target**: Directory for CSV files (e.g., `/config/query_logs`) when `type` is `csv` or `csv-client`
 - **Database**: Host, port, username, password, database name
 - **Fields**: Limit logged data (clientIP, clientName, responseReason, responseAnswer, question, duration)
 - **Retention**: Auto-delete logs older than X days (0 = keep forever)
 - **Flush Interval**: Batch write frequency (default: `30s`)
+
+Path note: `/config/...` is the container path. On the Home Assistant host, the same files are accessible under `/addon_config/<repository>_blocky/...`.
+
+For `mysql`, `postgresql`, and `timescale` types, Blocky constructs the target connection string from `db_*` fields; `target` is not used directly.
 
 ### Redis Integration
 
@@ -146,7 +166,11 @@ Resolve client IP addresses to friendly names using reverse DNS and static mappi
 
 ### Custom Config Mode
 
-Enable to use manual YAML configuration at `/addon_config/<repository>_blocky/config.yml`. All UI settings are ignored when enabled. Use for advanced Blocky features not available in UI (regex patterns, per-client rules, etc.).
+Enable to use manual YAML configuration at `/addon_config/<repository>_blocky/config.yml`.
+
+**Important:** when enabled, all UI settings are ignored. The UI remains visible due to Home Assistant limitations, but values there are not applied. Treat UI fields as read-only in this mode.
+
+Use this mode for advanced Blocky features not available in UI (regex patterns, per-client rules, etc.).
 
 ## Configuration Examples
 
@@ -259,6 +283,8 @@ query_log:
 
 Access API at `http://[HOST]:4000/api/`
 
+> **Security warning:** Blocky's API is unauthenticated. Any host with network access to port 4000 can call control endpoints. Keep the API on trusted LAN segments only.
+
 | Endpoint | Method | Parameters | Description |
 |----------|--------|------------|-------------|
 | `/blocking/status` | GET | - | Check if blocking is enabled |
@@ -281,11 +307,17 @@ curl "http://homeassistant.local:4000/api/query?query=example.com&type=A"
 
 ## Performance Tuning
 
+**Memory guidance:**
+- Absolute minimum: ~256MB for lightweight setups
+- Recommended: 512MB+ for larger blocklists, query logging, or aggressive caching
+
 **Low-memory devices (Raspberry Pi):**
 - Reduce blocklist count
 - Set `max_items_count: 5000` for cache
 - Disable query logging
 - Disable prefetching
+
+Home Assistant add-ons do not expose per-add-on CPU/RAM limits in this project today. Use Blocky cache and logging settings to control memory footprint.
 
 **High-performance networks:**
 - Enable prefetching with higher threshold
@@ -300,6 +332,14 @@ curl "http://homeassistant.local:4000/api/query?query=example.com&type=A"
 - Use DoH/DoT upstreams exclusively
 
 ## Security
+
+### Container Privileges
+
+The add-on currently runs as root inside the HA add-on sandbox because DNS binds to privileged port 53. This is common for DNS add-ons, but still a tradeoff.
+
+- Prefer strict network boundaries (LAN-only access)
+- Keep host and add-on updated
+- Avoid exposing DNS/API ports to untrusted networks
 
 ### DNS Amplification Prevention
 
@@ -332,6 +372,53 @@ DNS amplification is a type of DDoS attack where an attacker sends small DNS que
 **Note:** Home Assistant's Docker network architecture provides a layer of isolation, and the add-on's port mappings are typically only accessible from the local network. However, network configurations vary, and it is your responsibility to ensure port 53 is not exposed to the internet.
 
 ## Troubleshooting
+
+### Port 53 conflict (systemd-resolved)
+
+On some Linux hosts (especially Home Assistant Supervised), `systemd-resolved` may bind to port 53.
+
+```bash
+ss -tulnp | grep :53
+```
+
+If needed, set `DNSStubListener=no` in `/etc/systemd/resolved.conf`, restart `systemd-resolved`, then restart the add-on.
+
+### Upstreams unreachable at startup
+
+If all upstream resolvers are unreachable, startup behavior depends on upstream init settings.
+
+- `init_strategy: blocking` can delay readiness while checks run
+- `init_strategy: fast` starts DNS sooner and resolves upstream availability in background
+- `start_verify: true` fails startup when no upstream is reachable
+
+Use `fast` for unstable WAN links and verify behavior in your environment.
+
+### Blocklist source freshness
+
+Default blocklists are curated for reliability. The `sysctl.org/cameleon` source was removed because maintenance status could not be confirmed.
+
+If custom sources stop updating, Blocky logs refresh warnings. Replace stale lists with maintained alternatives.
+
+### Ingress note
+
+Ingress is not enabled by default because Blocky provides an API rather than a dedicated web UI. For authenticated remote usage, prefer Home Assistant proxying/reverse proxy with auth, or VPN access.
+
+## Upgrade and Migration Strategy
+
+### Standard mode (UI-driven)
+
+Schema migrations are handled by template/config updates shipped with the add-on. Upgrading the add-on updates generated config on restart.
+
+### Custom config mode
+
+You are responsible for adapting `/addon_config/<repository>_blocky/config.yml` when upstream Blocky schema changes.
+
+Recommended process:
+
+1. Read `blocky/CHANGELOG.md` and upstream Blocky release notes before upgrading
+2. Compare your custom config against the latest generated template output
+3. Validate manually with `blocky validate --config /etc/blocky/config.yml`
+4. Keep a backup of the last known-good custom config for rollback
 
 ### Verify Configuration
 

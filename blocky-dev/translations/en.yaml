@@ -343,7 +343,7 @@ configuration:
       target:
         name: Target Directory
         description: >-
-          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use /config/query_logs for persistence across restarts. Directory is created automatically if it doesn't exist. Accessible via /addon_config/<repository>_blocky/query_logs/ on the Home Assistant host. Leave empty to use Blocky's default location. Not used for console or database log types. Example: /config/query_logs
+          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use /config/query_logs for persistence across restarts. Directory is created automatically if it doesn't exist. /config/ is the container-internal path; on the Home Assistant host the same location is available under /addon_config/<repository>_blocky/ (for example /addon_config/<repository>_blocky/query_logs/). For mysql/postgresql/timescale logging, target is computed automatically from db_* fields and this option is ignored. Leave empty to use Blocky's default location for CSV logging. Example: /config/query_logs
       db_host:
         name: Database Host
         description: >-
@@ -406,4 +406,4 @@ configuration:
   custom_config:
     name: Custom Configuration Mode
     description: >-
-      Enable custom configuration mode to manually edit Blocky's configuration file directly. When enabled, all Home Assistant UI options are ignored, and you must edit the YAML file at /addon_config/<repository>_blocky/config.yml. Use this for advanced Blocky features not available in the UI, such as per-client blocking rules, query logging, regex patterns, and custom DNS records. On first enable, the add-on generates an initial config from your current UI settings as a starting point. See documentation for full details. Default: false (use UI configuration).
+      Enable custom configuration mode to manually edit Blocky's configuration file directly. WARNING: when enabled, all Home Assistant UI options are ignored and only /addon_config/<repository>_blocky/config.yml is used. Use this for advanced Blocky features not available in the UI, such as per-client blocking rules, query logging, regex patterns, and custom DNS records. On first enable, the add-on generates an initial config from your current UI settings as a starting point. See documentation for migration and operational guidance. Default: false (use UI configuration).

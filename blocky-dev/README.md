@@ -83,7 +83,7 @@ For advanced users who want full control:
 2. Place your `config.yml` in `/addon_config/<repository>_blocky/`
 3. Your custom configuration will be used directly
 
-**Warning:** In custom config mode, UI settings are ignored and your configuration file will not be overwritten.
+**Warning:** In custom config mode, UI settings are ignored and your configuration file will not be overwritten. Treat the UI as read-only in this mode.
 
 ## Basic Usage
 
@@ -103,6 +103,8 @@ After installation, configure your devices or router to use Blocky:
 
 Blocky exposes an HTTP API on port 4000 (internal to Home Assistant):
 
+> **WARNING:** The API is unauthenticated. Any host that can reach port 4000 can change blocking state (for example `disable`, `enable`, `lists/refresh`). Keep it LAN-only and do not expose it to untrusted networks.
+
 - **Check blocking status:** `http://homeassistant.local:4000/api/blocking/status`
 - **Disable blocking:** `http://homeassistant.local:4000/api/blocking/disable?duration=30s`
 - **Enable blocking:** `http://homeassistant.local:4000/api/blocking/enable`
@@ -120,6 +122,8 @@ The add-on includes sensible default blocklists:
 2. **Disconnect.me Ads** - Advertising domains
 3. **Disconnect.me Tracking** - Analytics and tracking domains
 
+The previous `sysctl.org/cameleon` default source was removed because freshness/maintenance status could not be reliably verified.
+
 You can disable these or add your own custom lists in the configuration.
 
 ## Security Considerations
@@ -133,6 +137,20 @@ You can disable these or add your own custom lists in the configuration.
 - Passwords must be in plaintext in Blocky's config files (required by Blocky)
 - Configuration files are protected by container isolation and file system permissions
 - Files are only accessible within the add-on container and mounted volumes
+
+### Runtime Isolation and Privileges
+
+The add-on currently runs as root inside the Home Assistant add-on sandbox because DNS listeners bind to privileged port 53. This follows common DNS add-on patterns in HA.
+
+- Isolation relies on Home Assistant's add-on container boundaries and host network policy.
+- Treat this as defense-in-depth tradeoff: avoid unnecessary network exposure and keep Home Assistant updated.
+
+### API Access Model
+
+Ingress is not enabled by default because Blocky exposes an API surface rather than a dedicated web UI. For most users, direct LAN access to port 4000 is simpler.
+
+- If you need authenticated remote access, prefer Home Assistant proxying/reverse proxy with authentication or a VPN.
+- Do not expose port 4000 publicly.
 
 **Best Practices:**
 - Use strong, unique passwords for Redis and database connections
@@ -196,6 +214,32 @@ Recommendations:
 2. Disable query logging
 3. Reduce cache size settings
 4. Check for excessive query rates
+
+### Port 53 Already in Use (systemd-resolved)
+
+On Home Assistant Supervised or generic Linux setups, another resolver (commonly `systemd-resolved`) may already listen on port 53.
+
+1. Check listeners: `ss -tulnp | grep :53`
+2. If `systemd-resolved` is using port 53, disable DNS stub listener and restart it:
+   - Set `DNSStubListener=no` in `/etc/systemd/resolved.conf`
+   - Run `sudo systemctl restart systemd-resolved`
+3. Restart the add-on and verify it binds to port 53
+
+If you cannot free port 53, run Blocky on a non-standard port and point clients/router to that port where supported.
+
+### Low-Memory Devices (RPi Zero / 512MB and below)
+
+Guideline targets:
+
+- 256MB minimum for basic setups
+- 512MB+ recommended for larger blocklists and query logging
+
+For constrained devices:
+
+1. Keep blocklists minimal
+2. Set `caching.max_items_count` to a finite value (for example `2000-5000`)
+3. Disable prefetching and query logging when not needed
+4. Prefer `upstreams.init_strategy: fast` if startup blocking is problematic
 
 ### Can't Access Add-on Configuration
 
