@@ -1,5 +1,5 @@
 {
-  "$comment": "Two-changelog approach: CHANGELOG.md (root) is auto-generated technical changelog for developers. blocky/CHANGELOG.md is manually maintained user-facing changelog.",
+  "$comment": "Release notes are generated in GitHub releases and embedded in the release commit message. blocky/CHANGELOG.md is manually maintained user-facing changelog.",
   "branches": [
     "main"
   ],
