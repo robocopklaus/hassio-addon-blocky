@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.0] - 2026-02-22
+
+### Added
+
+- EDNS Client Subnet (ECS) support for improved CDN geolocation:
+  - `ecs.use_as_client`: Send client subnet to upstream resolvers
+  - `ecs.forward`: Forward ECS data from downstream clients
+- `upstreams.start_verify` option to verify upstream DNS reachability on startup
+
+### Changed
+
+- Query logging privacy mode (`log.privacy`) now **enabled by default** — client IPs and domain names are anonymized unless explicitly disabled
+
+### Fixed
+
+- YAML injection via user-supplied values in template (all values now properly quoted)
+- Directory traversal in `query_log.target` path (validated to stay under `/config/`)
+- Generated config is now validated with `blocky validate` before persisting and before service startup
+- Exit code 256 treated as abnormal exit to prevent restart loops on application errors
+- Numeric config fields (`max_items_count`, `prefetch_threshold`, `connection_attempts`, etc.) now enforce min/max bounds
+- Caching `min_time`/`max_time` defaults corrected from `0m` to empty string to respect Blocky's own defaults
+- Database port `0` now accepted as "use default port" sentinel value
+- Container image hardened with architecture-specific SHA256 checksums and restrictive file permissions
+
 ## [3.1.0] - 2025-12-31
 
 ### Changed
@@ -142,7 +166,8 @@ Additional breaking changes:
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
-[Unreleased]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v1.0.0...v2.0.0
