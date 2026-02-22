@@ -9,8 +9,8 @@ on:
       - ".github/workflows/deploy-dev.yml"
 
 concurrency:
-  group: deploy-dev
-  cancel-in-progress: true
+  group: release-deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   sync:
