@@ -22,6 +22,7 @@ ports_description:
   4000/tcp: HTTP API and metrics port
 map:
   - addon_config:rw
+  - ssl:ro
 options:
   upstreams:
     groups:

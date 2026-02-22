@@ -14,12 +14,24 @@ ARG BUILD_ARCH
 ARG BLOCKY_VERSION=v0.28.2
 # renovate: datasource=github-releases depName=home-assistant/tempio
 ARG TEMPIO_VERSION=2024.11.2
+ARG TEMPIO_SHA256_AMD64=3b93ead246b3e49a616639594ec66a01e2a913193ea4462428b081b979d32243
+ARG TEMPIO_SHA256_AARCH64=01d1c8108e05b02e865286e715b05025a97f484ac694daa019323144e1d4e986
+ARG TEMPIO_SHA256_ARMV7=391666ac88a01615b7442949260f05d0e02f78cf6a13c7bb7b1be2dc24b72b48
+ARG TEMPIO_SHA256_ARMHF=78ae4e97dff2fa06bd539fa327f200be25f20978ad516c30c87b2cfd0e2b6bff
 
 # Install Tempio for config templating
-# Note: Tempio is from official Home Assistant org and doesn't publish checksums
 RUN \
+    case "${BUILD_ARCH}" in \
+        amd64) TEMPIO_SHA256="${TEMPIO_SHA256_AMD64}" ;; \
+        aarch64) TEMPIO_SHA256="${TEMPIO_SHA256_AARCH64}" ;; \
+        armv7) TEMPIO_SHA256="${TEMPIO_SHA256_ARMV7}" ;; \
+        armhf) TEMPIO_SHA256="${TEMPIO_SHA256_ARMHF}" ;; \
+        *) echo "Unsupported architecture: ${BUILD_ARCH}" && exit 1 ;; \
+    esac \
+    && \
     curl -sSLf -o /usr/bin/tempio \
     "https://github.com/home-assistant/tempio/releases/download/${TEMPIO_VERSION}/tempio_${BUILD_ARCH}" \
+    && echo "${TEMPIO_SHA256}  /usr/bin/tempio" | sha256sum -c - \
     && chmod +x /usr/bin/tempio
 
 # Install dependencies
@@ -34,6 +46,7 @@ RUN \
         amd64) ARCH="x86_64" ;; \
         armv7) ARCH="armv7" ;; \
         aarch64) ARCH="arm64" ;; \
+        # Verified against Blocky upstream release assets: armhf maps to armv6.
         armhf) ARCH="armv6" ;; \
         *) echo "Unsupported architecture: ${BUILD_ARCH}" && exit 1 ;; \
     esac \
@@ -88,5 +101,5 @@ LABEL \
     org.opencontainers.image.version="${BUILD_VERSION}"
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD blocky blocking status || exit 1
