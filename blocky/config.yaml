@@ -52,6 +52,9 @@ options:
     rewrite: []
     mapping: []
     fallback_upstream: false
+  ecs:
+    use_as_client: false
+    forward: false
   client_lookup:
     upstream: ""
     single_name_order: []
@@ -118,7 +121,7 @@ schema:
     groups:
       - name: str
         resolvers:
-          - str
+          - match(^(https://[^\s]+|(?:tcp\+udp|tcp-tls|tcp|udp):[^\s]+|[^\s:]+(?::[0-9]{1,5})?)$)
     init_strategy: list(blocking|failOnError|fast)?
     strategy: list(parallel_best|random|strict)?
     timeout: str?
@@ -152,6 +155,9 @@ schema:
         resolvers:
           - str
     fallback_upstream: bool?
+  ecs:
+    use_as_client: bool?
+    forward: bool?
   client_lookup:
     upstream: str?
     single_name_order:

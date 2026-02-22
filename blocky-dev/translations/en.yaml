@@ -147,6 +147,20 @@ configuration:
         description: >-
           Controls behavior when a conditional resolver returns an empty answer. When false (default), Blocky returns the empty result to the client. When true, Blocky falls back to normal upstream resolvers if the conditional resolver has no answer. Enable this for reliability when conditional resolvers might not have all records.
 
+  ecs:
+    name: EDNS Client Subnet (ECS)
+    description: >-
+      Controls EDNS Client Subnet behavior for upstream requests. ECS can improve CDN localization by providing client subnet hints to upstream resolvers, but it may reduce privacy because client network information is shared.
+    fields:
+      use_as_client:
+        name: Use Client Subnet
+        description: >-
+          Send the querying client subnet as ECS data to upstream resolvers when available. Improves geolocation accuracy for CDN-backed domains at the cost of additional client-network exposure.
+      forward:
+        name: Forward Existing ECS
+        description: >-
+          Forward ECS values received from downstream clients to upstream resolvers. Disable this if you want to avoid propagating downstream ECS data.
+
   client_lookup:
     name: Client Name Lookup
     description: >-
