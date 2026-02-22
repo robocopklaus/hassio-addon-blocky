@@ -6,13 +6,9 @@
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]
-![Supports armhf Architecture][armhf-shield]
-![Supports armv7 Architecture][armv7-shield]
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
-[armhf-shield]: https://img.shields.io/badge/armhf-yes-green.svg
-[armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
 
 A Home Assistant add-on that wraps [Blocky](https://github.com/0xERR0R/blocky) - a fast, lightweight DNS proxy and ad-blocker for your home network with support for DNS-over-TLS, DNS-over-HTTPS, and extensive customization options.
 
@@ -279,6 +275,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 This add-on supports the following architectures:
 
 - `amd64` - Intel/AMD 64-bit (x86_64)
-- `armv7` - ARM 32-bit (ARMv7)
 - `aarch64` - ARM 64-bit (ARMv8)
-- `armhf` - ARM 32-bit (older ARM devices)

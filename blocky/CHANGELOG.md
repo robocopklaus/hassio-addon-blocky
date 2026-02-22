@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.0.0] - 2026-02-22
+
+### Removed
+
+- Architecture support for `armv7` and `armhf` — Home Assistant base images are no longer published for these platforms
+
 ## [3.2.0] - 2026-02-22
 
 ### Added
@@ -166,7 +172,7 @@ Additional breaking changes:
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
-[Unreleased]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...HEAD
+[4.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...v4.0.0
 [3.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v2.0.0...v3.0.0

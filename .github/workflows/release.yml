@@ -119,13 +119,9 @@ jobs:
           # Extract base images from build.yaml for each architecture
           AMD64_BASE=$(yq '.build_from.amd64' blocky/build.yaml)
           ARM64_BASE=$(yq '.build_from.aarch64' blocky/build.yaml)
-          ARMV7_BASE=$(yq '.build_from.armv7' blocky/build.yaml)
-          ARMV6_BASE=$(yq '.build_from.armhf' blocky/build.yaml)
 
           echo "amd64_base=${AMD64_BASE}" >> $GITHUB_OUTPUT
           echo "arm64_base=${ARM64_BASE}" >> $GITHUB_OUTPUT
-          echo "armv7_base=${ARMV7_BASE}" >> $GITHUB_OUTPUT
-          echo "armv6_base=${ARMV6_BASE}" >> $GITHUB_OUTPUT
 
       - name: Set build metadata
         id: build_meta
@@ -201,7 +197,7 @@ jobs:
               --build-arg BUILD_DATE="${{ steps.build_meta.outputs.build_date }}" \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
-              blocky
+              blocky || return 1
 
             echo "::notice::Successfully built ${ARCH}"
           }
@@ -209,8 +205,6 @@ jobs:
           # Build all architectures
           build_arch amd64 linux/amd64 "${{ steps.build_config.outputs.amd64_base }}" || exit 1
           build_arch aarch64 linux/arm64 "${{ steps.build_config.outputs.arm64_base }}" || exit 1
-          build_arch armv7 linux/arm/v7 "${{ steps.build_config.outputs.armv7_base }}" || exit 1
-          build_arch armhf linux/arm/v6 "${{ steps.build_config.outputs.armv6_base }}" || exit 1
 
           echo "::endgroup::"
 
@@ -225,29 +219,21 @@ jobs:
           echo "::group::Validating architecture images"
           docker buildx imagetools inspect "${IMAGE_NAME}/amd64:${VERSION}" > /dev/null
           docker buildx imagetools inspect "${IMAGE_NAME}/aarch64:${VERSION}" > /dev/null
-          docker buildx imagetools inspect "${IMAGE_NAME}/armv7:${VERSION}" > /dev/null
-          docker buildx imagetools inspect "${IMAGE_NAME}/armhf:${VERSION}" > /dev/null
           docker buildx imagetools inspect "${IMAGE_NAME}/amd64:latest" > /dev/null
           docker buildx imagetools inspect "${IMAGE_NAME}/aarch64:latest" > /dev/null
-          docker buildx imagetools inspect "${IMAGE_NAME}/armv7:latest" > /dev/null
-          docker buildx imagetools inspect "${IMAGE_NAME}/armhf:latest" > /dev/null
           echo "::endgroup::"
 
           # Create manifest for versioned tag
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:${VERSION}" \
             "${IMAGE_NAME}/amd64:${VERSION}" \
-            "${IMAGE_NAME}/aarch64:${VERSION}" \
-            "${IMAGE_NAME}/armv7:${VERSION}" \
-            "${IMAGE_NAME}/armhf:${VERSION}"
+            "${IMAGE_NAME}/aarch64:${VERSION}"
 
           # Create manifest for latest tag
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:latest" \
             "${IMAGE_NAME}/amd64:latest" \
-            "${IMAGE_NAME}/aarch64:latest" \
-            "${IMAGE_NAME}/armv7:latest" \
-            "${IMAGE_NAME}/armhf:latest"
+            "${IMAGE_NAME}/aarch64:latest"
 
           echo "::endgroup::"
 
@@ -279,8 +265,6 @@ jobs:
           echo "- \`${IMAGE_NAME}:latest\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`${IMAGE_NAME}/amd64:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
           echo "- \`${IMAGE_NAME}/aarch64:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${IMAGE_NAME}/armv7:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${IMAGE_NAME}/armhf:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
 
           echo "::endgroup::"
 
@@ -309,16 +293,12 @@ jobs:
           docker buildx imagetools inspect "${IMAGE_NAME}:${VERSION}" > /dev/null
           docker buildx imagetools inspect "${IMAGE_NAME}/amd64:${VERSION}" > /dev/null
           docker buildx imagetools inspect "${IMAGE_NAME}/aarch64:${VERSION}" > /dev/null
-          docker buildx imagetools inspect "${IMAGE_NAME}/armv7:${VERSION}" > /dev/null
-          docker buildx imagetools inspect "${IMAGE_NAME}/armhf:${VERSION}" > /dev/null
 
       - name: Repoint architecture latest tags
         run: |
           set -euo pipefail
           docker buildx imagetools create -t "${IMAGE_NAME}/amd64:latest" "${IMAGE_NAME}/amd64:${VERSION}"
           docker buildx imagetools create -t "${IMAGE_NAME}/aarch64:latest" "${IMAGE_NAME}/aarch64:${VERSION}"
-          docker buildx imagetools create -t "${IMAGE_NAME}/armv7:latest" "${IMAGE_NAME}/armv7:${VERSION}"
-          docker buildx imagetools create -t "${IMAGE_NAME}/armhf:latest" "${IMAGE_NAME}/armhf:${VERSION}"
 
       - name: Repoint multi-arch latest manifest
         run: |
@@ -326,9 +306,7 @@ jobs:
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:latest" \
             "${IMAGE_NAME}/amd64:latest" \
-            "${IMAGE_NAME}/aarch64:latest" \
-            "${IMAGE_NAME}/armv7:latest" \
-            "${IMAGE_NAME}/armhf:latest"
+            "${IMAGE_NAME}/aarch64:latest"
 
       - name: Summarize rollback
         run: |
