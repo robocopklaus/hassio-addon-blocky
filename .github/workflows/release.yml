@@ -153,10 +153,10 @@ jobs:
           echo "::group::Running smoke tests"
 
           # Verify Blocky binary runs
-          docker run --rm ${{ env.IMAGE_NAME }}:scan blocky version
+          docker run --rm --entrypoint blocky ${{ env.IMAGE_NAME }}:scan version
 
           # Verify Tempio is installed
-          docker run --rm ${{ env.IMAGE_NAME }}:scan tempio --version
+          docker run --rm --entrypoint tempio ${{ env.IMAGE_NAME }}:scan --version
 
           echo "::endgroup::"
           echo "::notice::Smoke tests passed"
