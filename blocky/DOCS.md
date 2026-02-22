@@ -121,7 +121,7 @@ DNS response caching reduces upstream queries and improves performance.
 Record DNS queries to various backends. **WARNING:** Logs contain sensitive network activity.
 
 **Log Types:**
-- `none` (default): Disabled
+- `""` (default): Disabled
 - `csv`: Daily rotating CSV files
 - `csv-client`: Separate CSV per client
 - `console`: Output to add-on logs
@@ -424,7 +424,7 @@ Recommended process:
 
 In custom config mode, validate configuration before starting:
 ```bash
-docker exec <container> blocky --config /etc/blocky/config.yml validate
+docker exec <container> blocky validate --config /etc/blocky/config.yml
 ```
 
 ### Check Blocklist Loading
