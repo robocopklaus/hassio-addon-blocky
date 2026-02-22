@@ -218,7 +218,7 @@ configuration:
           sources:
             name: Sources
             description: >-
-              URLs or local file paths containing newline-separated domains. Local files should live under /config/ (for example /config/allowlists/domains.txt).
+              URLs or local file paths containing newline-separated domains. Local files should live under /config/ (for example /config/allowlists/domains.txt). /config/ is the container-internal path; on the Home Assistant host the same location is available under /addon_config/<repository>_blocky/.
       client_groups_block:
         name: Client Group Assignments
         description: >-
@@ -339,7 +339,7 @@ configuration:
       type:
         name: Log Type
         description: >-
-          Storage backend for query logs. Options: empty value (disabled, default - no logging), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: empty value (disabled).
+          Storage backend for query logs. Options: "" (blank, disabled by default - no logging), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: "" (blank, disabled).
       target:
         name: Target Directory
         description: >-
