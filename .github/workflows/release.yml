@@ -7,10 +7,15 @@ on:
         description: "Run semantic-release without publishing artifacts"
         type: boolean
         default: false
+      rollback_version:
+        description: "Rollback latest tags to a previously published version"
+        type: string
+        required: false
+        default: ""
 
 # Prevent multiple releases from running simultaneously
 concurrency:
-  group: release
+  group: release-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -23,6 +28,7 @@ jobs:
   semantic_release:
     name: Semantic Release
     runs-on: ubuntu-latest
+    if: inputs.rollback_version == ''
     permissions:
       contents: write
       issues: write
@@ -74,7 +80,7 @@ jobs:
     name: Build & Push Container
     runs-on: ubuntu-latest
     needs: semantic_release
-    if: needs.semantic_release.outputs.published == 'true' && inputs.dry_run != 'true'
+    if: needs.semantic_release.outputs.published == 'true' && inputs.dry_run != 'true' && inputs.rollback_version == ''
     permissions:
       contents: read
       packages: write
@@ -113,6 +119,12 @@ jobs:
           echo "armv7_base=${ARMV7_BASE}" >> $GITHUB_OUTPUT
           echo "armv6_base=${ARMV6_BASE}" >> $GITHUB_OUTPUT
 
+      - name: Set build metadata
+        id: build_meta
+        run: |
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+          echo "build_ref=${{ needs.semantic_release.outputs.commit_sha }}" >> $GITHUB_OUTPUT
+
       - name: Build and export amd64 for scanning
         uses: docker/build-push-action@v6
         env:
@@ -130,8 +142,8 @@ jobs:
             BUILD_DESCRIPTION=${{ env.BUILD_DESCRIPTION }}
             BUILD_NAME=${{ env.BUILD_NAME }}
             BUILD_REPOSITORY=${{ github.repository }}
-            BUILD_REF=${{ needs.semantic_release.outputs.commit_sha }}
-            BUILD_DATE=${{ github.event.repository.updated_at }}
+            BUILD_REF=${{ steps.build_meta.outputs.build_ref }}
+            BUILD_DATE=${{ steps.build_meta.outputs.build_date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -177,16 +189,11 @@ jobs:
               --build-arg BUILD_DESCRIPTION="${BUILD_DESCRIPTION}" \
               --build-arg BUILD_NAME="${BUILD_NAME}" \
               --build-arg BUILD_REPOSITORY="${GITHUB_REPOSITORY}" \
-              --build-arg BUILD_REF="${GITHUB_SHA}" \
-              --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --build-arg BUILD_REF="${{ steps.build_meta.outputs.build_ref }}" \
+              --build-arg BUILD_DATE="${{ steps.build_meta.outputs.build_date }}" \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
               blocky
-
-            if [ $? -ne 0 ]; then
-              echo "::error::Failed to build ${ARCH}"
-              return 1
-            fi
 
             echo "::notice::Successfully built ${ARCH}"
           }
@@ -206,6 +213,17 @@ jobs:
           set -euo pipefail
 
           echo "::group::Creating multi-arch manifest"
+
+          echo "::group::Validating architecture images"
+          docker buildx imagetools inspect "${IMAGE_NAME}/amd64:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/aarch64:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/armv7:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/armhf:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/amd64:latest" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/aarch64:latest" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/armv7:latest" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/armhf:latest" > /dev/null
+          echo "::endgroup::"
 
           # Create manifest for versioned tag
           docker buildx imagetools create \
@@ -259,3 +277,53 @@ jobs:
           echo "::endgroup::"
 
           echo "::notice::Release ${VERSION} published successfully to GHCR"
+
+  rollback_latest:
+    name: Rollback Latest Tags
+    runs-on: ubuntu-latest
+    if: inputs.rollback_version != '' && inputs.dry_run != 'true'
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ inputs.rollback_version }}
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate rollback source tags
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "${IMAGE_NAME}:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/amd64:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/aarch64:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/armv7:${VERSION}" > /dev/null
+          docker buildx imagetools inspect "${IMAGE_NAME}/armhf:${VERSION}" > /dev/null
+
+      - name: Repoint architecture latest tags
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create -t "${IMAGE_NAME}/amd64:latest" "${IMAGE_NAME}/amd64:${VERSION}"
+          docker buildx imagetools create -t "${IMAGE_NAME}/aarch64:latest" "${IMAGE_NAME}/aarch64:${VERSION}"
+          docker buildx imagetools create -t "${IMAGE_NAME}/armv7:latest" "${IMAGE_NAME}/armv7:${VERSION}"
+          docker buildx imagetools create -t "${IMAGE_NAME}/armhf:latest" "${IMAGE_NAME}/armhf:${VERSION}"
+
+      - name: Repoint multi-arch latest manifest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            -t "${IMAGE_NAME}:latest" \
+            "${IMAGE_NAME}/amd64:latest" \
+            "${IMAGE_NAME}/aarch64:latest" \
+            "${IMAGE_NAME}/armv7:latest" \
+            "${IMAGE_NAME}/armhf:latest"
+
+      - name: Summarize rollback
+        run: |
+          echo "### Rollback completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Latest tags now point to version: \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
