@@ -6,8 +6,6 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   ![Supports amd64 Architecture](https://img.shields.io/badge/amd64-yes-green.svg)
   ![Supports aarch64 Architecture](https://img.shields.io/badge/aarch64-yes-green.svg)
-  ![Supports armv7 Architecture](https://img.shields.io/badge/armv7-yes-green.svg)
-  ![Supports armhf Architecture](https://img.shields.io/badge/armhf-yes-green.svg)
 </div>
 
 ## About
@@ -37,7 +35,7 @@ This add-on can be installed directly from the Home Assistant Add-on Store or by
 ### Requirements
 
 - Home Assistant OS or Home Assistant Supervised
-- Supported architecture: amd64, aarch64, armv7, or armhf
+- Supported architecture: amd64 or aarch64
 
 ### Basic Setup
 

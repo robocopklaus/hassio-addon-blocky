@@ -79,7 +79,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 ## CI/CD & Release Pipeline
 
 - **Linting** (`.github/workflows/lint.yml`): Hadolint on `blocky/Dockerfile`, ShellCheck on `blocky/rootfs/` — runs on push/PR to main
-- **Release** (`.github/workflows/release.yml`): manual trigger (`workflow_dispatch`) → semantic-release → multi-arch Docker build (amd64, aarch64, armv7, armhf) → push to GHCR
+- **Release** (`.github/workflows/release.yml`): manual trigger (`workflow_dispatch`) → semantic-release → multi-arch Docker build (amd64, aarch64) → push to GHCR
 - **Versioning**: `scripts/update-addon-version.mjs` is called by semantic-release to stamp the version into `blocky/config.yaml`
 - **Commits**: conventional commits (`feat:` → minor, `fix:` → patch, `feat(deps):` for Blocky updates, `fix(deps):` for Tempio)
 - **Dev Deploy** (`.github/workflows/deploy-dev.yml`): push to main touching `blocky/**` → syncs `blocky-dev/` with patched config → commits back to main with `[skip ci]`
