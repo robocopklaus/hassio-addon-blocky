@@ -4,8 +4,6 @@ slug: blocky
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
 arch:
-  - armhf
-  - armv7
   - amd64
   - aarch64
 image: ghcr.io/robocopklaus/hassio-addon-blocky/{arch}

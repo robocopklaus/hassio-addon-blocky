@@ -19,16 +19,12 @@ ARG TEMPIO_VERSION=2024.11.2
 # Example: curl -sSLf "https://github.com/home-assistant/tempio/releases/download/${TEMPIO_VERSION}/tempio_<arch>" | sha256sum
 ARG TEMPIO_SHA256_AMD64=3b93ead246b3e49a616639594ec66a01e2a913193ea4462428b081b979d32243
 ARG TEMPIO_SHA256_AARCH64=01d1c8108e05b02e865286e715b05025a97f484ac694daa019323144e1d4e986
-ARG TEMPIO_SHA256_ARMV7=391666ac88a01615b7442949260f05d0e02f78cf6a13c7bb7b1be2dc24b72b48
-ARG TEMPIO_SHA256_ARMHF=78ae4e97dff2fa06bd539fa327f200be25f20978ad516c30c87b2cfd0e2b6bff
 
 # Install Tempio for config templating
 RUN \
     case "${BUILD_ARCH}" in \
         amd64) TEMPIO_SHA256="${TEMPIO_SHA256_AMD64}" ;; \
         aarch64) TEMPIO_SHA256="${TEMPIO_SHA256_AARCH64}" ;; \
-        armv7) TEMPIO_SHA256="${TEMPIO_SHA256_ARMV7}" ;; \
-        armhf) TEMPIO_SHA256="${TEMPIO_SHA256_ARMHF}" ;; \
         *) echo "Unsupported architecture: ${BUILD_ARCH}" && exit 1 ;; \
     esac \
     && \
@@ -47,10 +43,7 @@ RUN apk add --no-cache \
 RUN \
     case "${BUILD_ARCH}" in \
         amd64) ARCH="x86_64" ;; \
-        armv7) ARCH="armv7" ;; \
         aarch64) ARCH="arm64" ;; \
-        # Verified against Blocky upstream release assets: armhf maps to armv6.
-        armhf) ARCH="armv6" ;; \
         *) echo "Unsupported architecture: ${BUILD_ARCH}" && exit 1 ;; \
     esac \
     && BLOCKY_TARBALL="blocky_${BLOCKY_VERSION}_Linux_${ARCH}.tar.gz" \
