@@ -13,6 +13,21 @@ on:
     branches: [main]
 
 jobs:
+  contracts:
+    name: Config Contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.13.1
+
+      - name: Check config contracts
+        run: node scripts/check-config-contract.mjs
+
   hadolint:
     name: Hadolint
     runs-on: ubuntu-latest

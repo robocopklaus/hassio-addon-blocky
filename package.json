@@ -7,6 +7,7 @@
   },
   "packageManager": "pnpm@10.30.0",
   "scripts": {
+    "check:contracts": "node scripts/check-config-contract.mjs",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
   },
