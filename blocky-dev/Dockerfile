@@ -11,7 +11,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Setup base
 ARG BUILD_ARCH
 # renovate: datasource=github-releases depName=0xERR0R/blocky
-ARG BLOCKY_VERSION=v0.28.2
+ARG BLOCKY_VERSION=v0.29.0
 # renovate: datasource=github-releases depName=home-assistant/tempio
 ARG TEMPIO_VERSION=2024.11.2
 # IMPORTANT: Tempio does not publish checksums; update all hashes when
