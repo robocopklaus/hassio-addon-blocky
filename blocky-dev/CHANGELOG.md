@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.1] - 2026-02-28
+
+### Fixed
+
+- Caching section now renders when only `cache_time_negative`, `prefetch_expires`, or `prefetch_threshold` is set by the user — previously these fields had non-empty defaults that were stripped from the gate condition, silently dropping user config
+- Default values for `prefetch_expires` (was `2h`), `prefetch_threshold` (was `5`), and `cache_time_negative` (was `30m`) changed to empty/zero so Blocky's own defaults apply when the user hasn't configured them (no behavior change for existing installs)
+- `block_type` now validates against allowed values: `zeroIp`, `nxDomain`, IPv4 address, or IPv6 address — previously accepted any arbitrary string
+
 ## [4.1.0] - 2026-02-28
 
 ### Changed

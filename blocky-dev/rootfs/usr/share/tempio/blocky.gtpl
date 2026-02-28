@@ -296,9 +296,7 @@ queryLog:
 {{- end }}
 {{- end }}
 {{- end }}
-{{- if $queryLog.log_retention_days }}
   logRetentionDays: {{ $queryLog.log_retention_days }}
-{{- end }}
 {{- if $queryLog.creation_attempts }}
   creationAttempts: {{ $queryLog.creation_attempts }}
 {{- end }}
