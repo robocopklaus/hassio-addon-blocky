@@ -161,6 +161,24 @@ configuration:
         description: >-
           Forward ECS values received from downstream clients to upstream resolvers. Disable this if you want to avoid propagating downstream ECS data.
 
+  dns64:
+    name: DNS64
+    description: >-
+      Enable DNS64 to synthesize AAAA (IPv6) records from A (IPv4) records, allowing IPv6-only clients to access IPv4-only services. When enabled, Blocky intercepts AAAA queries and checks for native IPv6 records. If none exist, it queries for A records and synthesizes AAAA responses using the configured prefix. Only needed in IPv6-only or dual-stack transition networks. Most home networks should keep this disabled.
+    fields:
+      enable:
+        name: Enable DNS64
+        description: >-
+          Activate DNS64 address synthesis. When true, Blocky synthesizes AAAA records from A records for domains without native IPv6 support. Default: false (disabled).
+      prefixes:
+        name: IPv6 Prefixes
+        description: >-
+          IPv6 prefixes used for synthesizing AAAA records from A records. Valid prefix lengths: /32, /40, /48, /56, /64, /96. Leave empty to use the standard well-known prefix 64:ff9b::/96 (recommended for most deployments). Only customize if your network uses a different NAT64 prefix. Example: 64:ff9b::/96.
+      exclusion_set:
+        name: Exclusion Set
+        description: >-
+          IPv6 address ranges excluded from DNS64 synthesis. Queries resolving to addresses in these ranges will not trigger DNS64 synthesis. Leave empty to use Blocky's default exclusion set (recommended). Only customize for advanced network configurations with specific exclusion requirements.
+
   client_lookup:
     name: Client Name Lookup
     description: >-

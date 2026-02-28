@@ -107,6 +107,24 @@ ecs:
   forward: {{ .ecs.forward }}
 {{- end }}
 
+{{- if .dns64.enable }}
+# DNS64
+dns64:
+  enable: true
+{{- if .dns64.prefixes }}
+  prefixes:
+{{- range .dns64.prefixes }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- if .dns64.exclusion_set }}
+  exclusionSet:
+{{- range .dns64.exclusion_set }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- $clientLookup := .client_lookup }}
 {{- if $clientLookup }}
 {{- $upstream := $clientLookup.upstream }}

@@ -53,6 +53,10 @@ options:
   ecs:
     use_as_client: false
     forward: false
+  dns64:
+    enable: false
+    prefixes: []
+    exclusion_set: []
   client_lookup:
     upstream: ""
     single_name_order: []
@@ -155,6 +159,12 @@ schema:
   ecs:
     use_as_client: bool?
     forward: bool?
+  dns64:
+    enable: bool?
+    prefixes:
+      - str
+    exclusion_set:
+      - str
   client_lookup:
     upstream: str?
     single_name_order:
