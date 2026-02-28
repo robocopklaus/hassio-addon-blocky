@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.1.0] - 2026-02-28
+
+### Changed
+
+- Blocky upgraded from v0.28.2 to v0.29.0
+
+### Added
+
+- DNS64 support for IPv6/IPv4 address translation:
+  - `dns64.enable`: Activate DNS64 AAAA record synthesis
+  - `dns64.prefixes`: Custom IPv6 prefixes for synthesis (default: 64:ff9b::/96)
+  - `dns64.exclusion_set`: IPv6 ranges excluded from synthesis
+
+### Added (Upstream Blocky)
+
+- RFC 7239 Forwarded header support for improved client IP parsing
+- Enhanced X-Forwarded-For IP address extraction
+
+### Fixed (Upstream Blocky)
+
+- Incorrect rate data shown on Grafana dashboards
+- TimescaleDB auto-migration issues
+
 ## [4.0.0] - 2026-02-22
 
 ### Removed
@@ -172,6 +195,7 @@ Additional breaking changes:
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
+[4.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...v4.0.0
 [3.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.0.0...v3.1.0
