@@ -253,7 +253,7 @@ configuration:
       block_type:
         name: Block Response Type
         description: >-
-          Controls how Blocky responds to blocked DNS queries. Options: zeroIp (default, returns 0.0.0.0 for IPv4 and :: for IPv6) or nxDomain (returns NXDOMAIN indicating domain doesn't exist). Only affects A and AAAA queries; other record types automatically receive NXDOMAIN when blocked. For advanced block responses like custom IP addresses, enable Custom Configuration Mode. Default: zeroIp.
+          Controls how Blocky responds to blocked DNS queries. Options: zeroIp (default, returns 0.0.0.0 for IPv4 and :: for IPv6), nxDomain (returns NXDOMAIN indicating domain doesn't exist), or a custom IP address (e.g., 192.168.1.100 to redirect blocked queries to a local block page). Only affects A and AAAA queries; other record types automatically receive NXDOMAIN when blocked. Default: zeroIp.
       block_ttl:
         name: Block Response TTL
         description: >-
@@ -357,7 +357,7 @@ configuration:
       type:
         name: Log Type
         description: >-
-          Storage backend for query logs. Options: "" (blank, disabled by default - no logging), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: "" (blank, disabled).
+          Storage backend for query logs. Options: "" (blank, disabled by default - no logging), none (explicit disable, equivalent to blank), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: "" (blank, disabled).
       target:
         name: Target Directory
         description: >-
@@ -397,7 +397,7 @@ configuration:
       fields:
         name: Log Fields
         description: >-
-          Select which data fields to include in query logs. Leave empty (default) to log all available fields. Options: clientIP (request origin IP address), clientName (resolved client identifier from clientLookup), responseReason (why this response was returned - cached, blocked, forwarded, etc.), responseAnswer (actual DNS answer returned), question (DNS query details - domain and record type), duration (query processing time in milliseconds). Limiting fields reduces log size and improves privacy. Default: empty (log all fields).
+          Select which data fields to include in query logs. Leave empty (default) to log all available fields. Available fields: clientIP (request origin IP address), clientName (resolved client identifier from clientLookup), responseReason (why this response was returned - cached, blocked, forwarded, etc.), responseAnswer (actual DNS answer returned), question (DNS query details - domain and record type), duration (query processing time in milliseconds). Limiting fields reduces log size and improves privacy. Default: empty (log all fields).
       flush_interval:
         name: Flush Interval
         description: >-
@@ -419,7 +419,7 @@ configuration:
       privacy:
         name: Privacy Mode
         description: >-
-          Obfuscates sensitive data in logs by replacing alphanumeric characters with asterisks (*). Affects DNS query domains and response data. WARNING: When disabled, full domain names and client IP addresses are logged in plaintext, exposing browsing habits of all network users. Even with privacy mode enabled, query metadata (timing, frequency, response types) may still reveal browsing patterns. Enable in shared environments or for compliance requirements (e.g., GDPR). When enabled, logs will show patterns like "query: *********" instead of actual domains. Default: true (enabled).
+          Obfuscates sensitive data in logs by replacing alphanumeric characters with asterisks (*). Affects DNS query domains and response data. WARNING: When disabled, full domain names and client IP addresses are logged in plaintext, exposing browsing habits of all network users. Even with privacy mode enabled, query metadata (timing, frequency, response types) may still reveal browsing patterns. Enable in shared environments or for compliance requirements (e.g., GDPR). When enabled, logs will show patterns like "query: *********" instead of actual domains. NOTE: The addon defaults this to true for privacy protection; Blocky's own default is false. If you are troubleshooting DNS issues and seeing obfuscated domain names in logs, temporarily set this to false. Default: true (enabled, differs from Blocky's default of false).
 
   custom_config:
     name: Custom Configuration Mode

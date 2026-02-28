@@ -122,7 +122,7 @@ schema:
     groups:
       - name: str
         resolvers:
-          - match(^(https://[^\s]+|(?:tcp\+udp|tcp-tls|tcp|udp):[^\s]+|[^\s:]+(?::[0-9]{1,5})?)$)
+          - match(^(https://[^\s]+|sdns://[^\s]+|(?:tcp\+udp|tcp-tls|tcp|udp):[^\s]+|[^\s:]+(?::[0-9]{1,5})?)$)
     init_strategy: list(blocking|failOnError|fast)?
     strategy: list(parallel_best|random|strict)?
     timeout: str?
@@ -186,7 +186,7 @@ schema:
       - name: str
         lists:
           - str
-    block_type: list(zeroIp|nxDomain)?
+    block_type: str?
     block_ttl: str?
   caching:
     min_time: str?
@@ -211,7 +211,7 @@ schema:
     enable: bool?
     path: str?
   query_log:
-    type: list(|csv|csv-client|console|mysql|postgresql|timescale)?
+    type: list(|none|csv|csv-client|console|mysql|postgresql|timescale)?
     target: str?
     db_host: str?
     db_port: int(0,65535)?
@@ -222,7 +222,7 @@ schema:
     creation_attempts: int(1,)?
     creation_cooldown: str?
     fields:
-      - str
+      - list(clientIP|clientName|responseReason|responseAnswer|question|duration)
     flush_interval: str?
   log:
     level: list(trace|debug|info|warn|error)?
