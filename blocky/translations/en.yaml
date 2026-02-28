@@ -253,7 +253,7 @@ configuration:
       block_type:
         name: Block Response Type
         description: >-
-          Controls how Blocky responds to blocked DNS queries. Options: zeroIp (default, returns 0.0.0.0 for IPv4 and :: for IPv6), nxDomain (returns NXDOMAIN indicating domain doesn't exist), or a custom IP address (e.g., 192.168.1.100 to redirect blocked queries to a local block page). Only affects A and AAAA queries; other record types automatically receive NXDOMAIN when blocked. Default: zeroIp.
+          Controls how Blocky responds to blocked DNS queries. Options: zeroIp (default, returns 0.0.0.0 for IPv4 and :: for IPv6), nxDomain (returns NXDOMAIN indicating domain doesn't exist), or a custom IP address (e.g., 192.168.1.100 to redirect blocked queries to a local block page). A comma-separated list of IPs is also supported (e.g., 192.168.1.1, 2001:db8::1). Only affects A and AAAA queries; other record types automatically receive NXDOMAIN when blocked. Default: zeroIp.
       block_ttl:
         name: Block Response TTL
         description: >-
