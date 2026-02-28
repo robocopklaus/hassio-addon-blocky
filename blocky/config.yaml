@@ -83,10 +83,10 @@ options:
     max_time: ""
     max_items_count: 0
     prefetching: false
-    prefetch_expires: 2h
-    prefetch_threshold: 5
+    prefetch_expires: ""
+    prefetch_threshold: 0
     prefetch_max_items_count: 0
-    cache_time_negative: 30m
+    cache_time_negative: ""
     exclude: []
   redis:
     address: ""
@@ -186,7 +186,7 @@ schema:
       - name: str
         lists:
           - str
-    block_type: str?
+    block_type: match(^(zeroIp|nxDomain|([0-9]{1,3}\.){3}[0-9]{1,3}|[0-9a-fA-F:]+)$)?
     block_ttl: str?
   caching:
     min_time: str?

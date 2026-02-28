@@ -209,7 +209,7 @@ blocking:
 
 
 {{- $caching := .caching }}
-{{- if or $caching.min_time $caching.max_time $caching.prefetching $caching.max_items_count $caching.exclude }}
+{{- if or $caching.min_time $caching.max_time $caching.prefetching $caching.cache_time_negative $caching.max_items_count $caching.prefetch_expires $caching.prefetch_threshold $caching.prefetch_max_items_count $caching.exclude }}
 # DNS Caching
 caching:
 {{- if $caching.min_time }}

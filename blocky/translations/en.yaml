@@ -287,11 +287,11 @@ configuration:
       prefetch_expires:
         name: Prefetch Tracking Window
         description: >-
-          Time window for tracking frequently queried domains for prefetching. Only queries within this window count toward the prefetch threshold. Domains not queried within this period are removed from prefetch tracking. Format: duration string like 1h (1 hour), 2h (2 hours, default), 4h (4 hours), 24h (24 hours). Longer values track domains over extended periods but use more memory. Shorter values focus on recently active domains. Only applies when prefetching is enabled. Default: 2h.
+          Time window for tracking frequently queried domains for prefetching. Only queries within this window count toward the prefetch threshold. Domains not queried within this period are removed from prefetch tracking. Format: duration string like 1h (1 hour), 2h (2 hours), 4h (4 hours), 24h (24 hours). Longer values track domains over extended periods but use more memory. Shorter values focus on recently active domains. Only applies when prefetching is enabled. Leave empty to use Blocky's default (2h).
       prefetch_threshold:
         name: Prefetch Query Threshold
         description: >-
-          Minimum number of queries required before a domain is marked for prefetching. Domains must be queried at least this many times within the prefetch tracking window to be automatically refreshed. Format: integer (e.g., 3, 5, 10). Higher values (10+) limit prefetching to very popular domains, reducing upstream queries but potentially missing some domains. Lower values (3-5) prefetch more domains for better cache hit rates. Default: 5. Only applies when prefetching is enabled.
+          Minimum number of queries required before a domain is marked for prefetching. Domains must be queried at least this many times within the prefetch tracking window to be automatically refreshed. Format: integer (e.g., 3, 5, 10). Higher values (10+) limit prefetching to very popular domains, reducing upstream queries but potentially missing some domains. Lower values (3-5) prefetch more domains for better cache hit rates. Only applies when prefetching is enabled. Set to 0 to use Blocky's default (5).
       prefetch_max_items_count:
         name: Maximum Prefetch Domains
         description: >-
