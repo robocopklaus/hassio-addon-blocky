@@ -1,11 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Track ARG versions annotated by renovate comments",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>[a-zA-Z-]+)\\s+depName=(?<depName>[^\\s]+)\\s*(?:#.*\\s*)*ARG\\s+[A-Z_]+_VERSION=(?<currentValue>[^\\s]+)"
       ]
@@ -13,7 +17,9 @@
     {
       "customType": "regex",
       "description": "Track Home Assistant base image versions in build.yaml",
-      "fileMatch": ["(^|/)build\\.yaml$"],
+      "managerFilePatterns": [
+        "/(^|/)build\\.yaml$/"
+      ],
       "matchStrings": [
         "\\s+\\w+:\\s+(?<depName>ghcr\\.io/home-assistant/[\\w-]+-base):(?<currentValue>[^\\s]+)"
       ],
@@ -26,42 +32,61 @@
     "before 5am every weekday",
     "every weekend"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "semanticCommits": "enabled",
   "commitMessagePrefix": "chore(deps):",
   "dependencyDashboard": true,
-  "stabilityDays": 3,
+  "minimumReleaseAge": "3 days",
   "packageRules": [
     {
       "description": "Blocky updates trigger version bump",
-      "matchDatasources": ["github-releases"],
-      "matchPackageNames": ["0xERR0R/blocky"],
+      "matchDatasources": [
+        "github-releases"
+      ],
+      "matchPackageNames": [
+        "0xERR0R/blocky"
+      ],
       "commitMessagePrefix": "feat(deps):",
       "automerge": false
     },
     {
       "description": "Tempio updates trigger patch bump",
-      "matchDatasources": ["github-releases"],
-      "matchPackageNames": ["home-assistant/tempio"],
+      "matchDatasources": [
+        "github-releases"
+      ],
+      "matchPackageNames": [
+        "home-assistant/tempio"
+      ],
       "commitMessagePrefix": "fix(deps):",
       "automerge": false
     },
     {
       "description": "Auto-merge patch updates only",
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "branch"
     },
     {
       "description": "Group Home Assistant base images",
-      "matchDatasources": ["docker"],
-      "matchPackagePatterns": ["^ghcr.io/home-assistant/.*-base$"],
-      "groupName": "Home Assistant base images"
+      "matchDatasources": [
+        "docker"
+      ],
+      "groupName": "Home Assistant base images",
+      "matchPackageNames": [
+        "/^ghcr.io/home-assistant/.*-base$/"
+      ]
     },
     {
       "description": "Group semantic-release packages",
-      "matchPackagePatterns": ["^@semantic-release/", "^semantic-release$"],
-      "groupName": "semantic-release packages"
+      "groupName": "semantic-release packages",
+      "matchPackageNames": [
+        "/^@semantic-release//",
+        "/^semantic-release$/"
+      ]
     }
   ]
 }
