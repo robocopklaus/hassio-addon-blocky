@@ -130,7 +130,7 @@ jobs:
           echo "build_ref=${{ needs.semantic_release.outputs.commit_sha }}" >> $GITHUB_OUTPUT
 
       - name: Build and export amd64 for scanning
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           VERSION: ${{ needs.semantic_release.outputs.version }}
         with:
