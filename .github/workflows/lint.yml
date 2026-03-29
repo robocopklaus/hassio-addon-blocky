@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24.14.0
+          node-version: 24.14.1
 
       - name: Check config contracts
         run: node scripts/check-config-contract.mjs
