@@ -68,7 +68,7 @@ jobs:
 
       - name: Run semantic-release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v5
+        uses: cycjimmy/semantic-release-action@v6
         with:
           dry_run: ${{ inputs.dry_run }}
           extra_plugins: |
