@@ -10,7 +10,7 @@
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
 
-A Home Assistant add-on that wraps [Blocky](https://github.com/0xERR0R/blocky) - a fast, lightweight DNS proxy and ad-blocker for your home network with support for DNS-over-TLS, DNS-over-HTTPS, and extensive customization options.
+A Home Assistant add-on that wraps [Blocky](https://github.com/0xERR0R/blocky) - a fast, lightweight DNS proxy and ad-blocker for your home network with support for DNS-over-TLS, DNS-over-HTTPS, DNS-over-QUIC, and extensive customization options.
 
 ## About
 
@@ -20,14 +20,16 @@ Blocky is a DNS proxy and ad-blocker that sits between your devices and your ups
 
 - **DNS-based Ad Blocking** - Block ads, trackers, and malicious domains network-wide
 - **Multiple Upstream Resolvers** - Configure multiple DNS providers with automatic failover
-- **DNS-over-TLS (DoT) & DNS-over-HTTPS (DoH)** - Encrypted DNS queries for enhanced privacy
+- **DNS-over-TLS (DoT), DNS-over-HTTPS (DoH) & DNS-over-QUIC (DoQ)** - Encrypted DNS queries for enhanced privacy
 - **Conditional DNS** - Route specific domains to specific DNS servers
 - **Client Groups** - Apply different blocking rules to different devices
+- **Schedule-based Blocking** - Apply list groups only during selected days or time windows
 - **Custom Block/Allow Lists** - Full control over blocked and allowed domains
 - **Query Logging** - Log DNS queries to file, MySQL, PostgreSQL, or CSV
 - **Redis Caching** - Optional Redis integration for improved performance
 - **EDNS Client Subnet** - Forward client IP subnet information to upstream resolvers
 - **Prometheus Metrics** - Built-in metrics endpoint for monitoring
+- **Optional DoH3** - DNS-over-HTTPS over HTTP/3 when HTTPS and UDP port 443 are exposed
 - **Interactive Blocking Status** - Temporarily disable blocking via HTTP API
 - **Hostsfile Blocking** - Support for hosts file format blocklists
 
@@ -160,6 +162,7 @@ Ingress is not enabled by default because Blocky exposes an API surface rather t
 
 - **DNS Port (53):** Required for DNS resolution, exposed to your local network
 - **HTTP API Port (4000):** Metrics and control interface, consider access restrictions
+- **HTTPS/DoH Port (443 TCP/UDP):** Optional, disabled by default. Only expose to trusted clients and use trusted certificates for DoH/DoH3.
 - Blocky does not require internet-facing exposure
 
 **To prevent DNS amplification:**
