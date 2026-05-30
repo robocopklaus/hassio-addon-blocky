@@ -14,10 +14,14 @@ ports:
   53/tcp: 53
   53/udp: 53
   4000/tcp: 4000
+  443/tcp: null
+  443/udp: null
 ports_description:
   53/tcp: DNS TCP port
   53/udp: DNS UDP port
   4000/tcp: HTTP API and metrics port
+  443/tcp: HTTPS API and DNS-over-HTTPS port
+  443/udp: DNS-over-HTTPS over HTTP/3 port
 map:
   - addon_config:rw
   - ssl:ro
@@ -33,6 +37,9 @@ options:
     strategy: parallel_best
     timeout: 2s
     start_verify: false
+    quic:
+      max_idle_timeout: ""
+      keep_alive_period: ""
   bootstrap:
     dns:
       - upstream: 1.1.1.1
@@ -76,6 +83,8 @@ options:
         lists:
           - ads
           - tracking
+    schedules: []
+    list_schedules: []
     block_type: zeroIp
     block_ttl: 6h
   caching:
@@ -99,6 +108,12 @@ options:
   prometheus:
     enable: false
     path: /metrics
+  https:
+    enable: false
+    cert_file: ""
+    key_file: ""
+  http3:
+    enable: false
   query_log:
     type: ""
     target: ""
@@ -122,12 +137,15 @@ schema:
     groups:
       - name: str
         resolvers:
-          - match(^(https://[^\s]+|sdns://[^\s]+|(?:tcp\+udp|tcp-tls|tcp|udp):[^\s]+|[^\s:]+(?::[0-9]{1,5})?)$)
+          - match(^(https://[^\s]+|sdns://[^\s]+|(?:tcp\+udp|tcp-tls|tcp|udp|quic):[^\s]+|[^\s:]+(?::[0-9]{1,5})?)$)
     init_strategy: list(blocking|failOnError|fast)?
     strategy: list(parallel_best|random|strict)?
     timeout: str?
     start_verify: bool?
     user_agent: str?
+    quic:
+      max_idle_timeout: str?
+      keep_alive_period: str?
   bootstrap:
     dns:
       - upstream: str
@@ -186,6 +204,16 @@ schema:
       - name: str
         lists:
           - str
+    schedules:
+      - name: str
+        weekdays:
+          - list(mon|tue|wed|thu|fri|sat|sun)
+        start: match(^([01][0-9]|2[0-3]):[0-5][0-9]$)?
+        end: match(^([01][0-9]|2[0-3]):[0-5][0-9]$)?
+    list_schedules:
+      - list_name: str
+        schedules:
+          - str
     block_type: match(^(zeroIp|nxDomain|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}|([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4})(,\s*((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}|([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}))*)$)?
     block_ttl: str?
   caching:
@@ -210,6 +238,12 @@ schema:
   prometheus:
     enable: bool?
     path: str?
+  https:
+    enable: bool?
+    cert_file: str?
+    key_file: str?
+  http3:
+    enable: bool?
   query_log:
     type: list(|none|csv|csv-client|console|mysql|postgresql|timescale)?
     target: str?

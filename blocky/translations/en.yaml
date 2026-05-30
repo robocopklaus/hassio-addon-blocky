@@ -27,10 +27,23 @@ configuration:
           When enabled, Blocky verifies that configured upstream DNS servers are
           reachable during startup. If no upstream is reachable, Blocky will fail
           to start instead of running with broken DNS resolution.
+      quic:
+        name: DNS-over-QUIC Settings
+        description: >-
+          Optional tuning for DNS-over-QUIC (DoQ) upstream resolvers. Only applies when an upstream resolver uses the quic: or quic:// protocol. Leave empty to use Blocky's defaults.
+        fields:
+          max_idle_timeout:
+            name: Maximum Idle Timeout
+            description: >-
+              Maximum time a DNS-over-QUIC connection may stay idle before Blocky closes it. Format: duration string like 30s or 1m. Leave empty to use Blocky's default of 30s.
+          keep_alive_period:
+            name: Keep-Alive Period
+            description: >-
+              Interval for DNS-over-QUIC keep-alive packets used to keep upstream connections open. Format: duration string like 15s or 30s. Leave empty to use Blocky's default of 15s. Should be lower than the maximum idle timeout.
       user_agent:
         name: User Agent
         description: >-
-          Custom User-Agent header for DNS-over-HTTPS (DoH) requests. Only applies to HTTPS upstream resolvers (https://...). Some DNS providers require or prefer specific User-Agent strings for identification, rate limiting, or analytics purposes. Leave empty to use Blocky's default User-Agent. Has no effect on DNS-over-TLS (tcp-tls:...) or plain DNS resolvers. Example: "MyNetwork-DNS/1.0" or "Blocky-HomeAssistant".
+          Custom User-Agent header for DNS-over-HTTPS (DoH) requests. Only applies to HTTPS upstream resolvers (https://...). Some DNS providers require or prefer specific User-Agent strings for identification, rate limiting, or analytics purposes. Leave empty to use Blocky's default User-Agent. Has no effect on DNS-over-TLS (tcp-tls:...), DNS-over-QUIC (quic:...), or plain DNS resolvers. Example: "MyNetwork-DNS/1.0" or "Blocky-HomeAssistant".
   
   bootstrap:
     name: Bootstrap DNS
@@ -45,7 +58,7 @@ configuration:
           upstream:
             name: Upstream Resolver
             description: >-
-              DNS resolver in format [net:]host:[port][/path]. Supported protocols: tcp+udp (default, port 53), tcp-tls (DNS-over-TLS, port 853), https (DNS-over-HTTPS, port 443). Examples: 1.1.1.1 (plain IP), tcp+udp:8.8.8.8:53 (explicit TCP/UDP), tcp-tls:1.1.1.1:853 (DoT with IP), https://1.1.1.1/dns-query (DoH with IP). For best reliability, use IP-based resolvers rather than hostnames to avoid circular dependencies.
+              DNS resolver in format [net:]host:[port][/path]. Supported protocols: tcp+udp (default, port 53), tcp-tls (DNS-over-TLS, port 853), https (DNS-over-HTTPS, port 443), and quic (DNS-over-QUIC, port 853). Examples: 1.1.1.1 (plain IP), tcp+udp:8.8.8.8:53 (explicit TCP/UDP), tcp-tls:1.1.1.1:853 (DoT with IP), https://1.1.1.1/dns-query (DoH with IP), quic:94.140.14.14 (DoQ with IP). For best reliability, use IP-based resolvers rather than hostnames to avoid circular dependencies.
           ips:
             name: IP Addresses
             description: >-
@@ -141,7 +154,7 @@ configuration:
           resolvers:
             name: DNS Resolvers
             description: >-
-              DNS server(s) to use for this domain. Supports multiple resolvers for redundancy. Formats: Plain IP (192.168.1.1), IP with port (192.168.1.1:5353), TCP/UDP (tcp+udp:192.168.1.1), DNS-over-TLS (tcp-tls:dns.example.com:853), DNS-over-HTTPS (https://192.168.1.1/dns-query). Typically your router's IP for local domains.
+              DNS server(s) to use for this domain. Supports multiple resolvers for redundancy. Formats: Plain IP (192.168.1.1), IP with port (192.168.1.1:5353), TCP/UDP (tcp+udp:192.168.1.1), DNS-over-TLS (tcp-tls:dns.example.com:853), DNS-over-HTTPS (https://192.168.1.1/dns-query), and DNS-over-QUIC (quic:dns.example.com). Typically your router's IP for local domains.
       fallback_upstream:
         name: Fallback to Upstream
         description: >-
@@ -250,6 +263,40 @@ configuration:
             name: Denylist Names
             description: >-
               Denylist identifiers to apply to this client group. You can reference multiple denylists (e.g., ads, tracking) to combine their sources.
+      schedules:
+        name: Blocking Schedules
+        description: >-
+          Named schedules that define when allowlist or denylist groups are active. Use these together with List Schedules to apply specific lists only during selected days or time windows.
+        fields:
+          name:
+            name: Schedule Name
+            description: >-
+              Identifier for this schedule, for example workhours, school_night, or weekend. Reference this name from List Schedules.
+          weekdays:
+            name: Weekdays
+            description: >-
+              Days when this schedule applies. Allowed values: mon, tue, wed, thu, fri, sat, sun. At least one day is required.
+          start:
+            name: Start Time
+            description: >-
+              Optional start time in 24-hour HH:MM format, for example 08:00. Must be set together with End Time. Leave both Start Time and End Time empty for an all-day schedule on the selected weekdays.
+          end:
+            name: End Time
+            description: >-
+              Optional end time in 24-hour HH:MM format, for example 18:00. Must be set together with Start Time. If Start Time is later than End Time, the schedule spans overnight.
+      list_schedules:
+        name: List Schedules
+        description: >-
+          Map allowlist or denylist group names to one or more schedules. Lists without an entry here are always active. If multiple schedules are assigned to one list, the list is active when any assigned schedule matches.
+        fields:
+          list_name:
+            name: List Group Name
+            description: >-
+              Name of the allowlist or denylist group to schedule, for example ads, tracking, or kids.
+          schedules:
+            name: Schedule Names
+            description: >-
+              Schedule identifiers that activate this list group. Each value must match a name defined under Blocking Schedules.
       block_type:
         name: Block Response Type
         description: >-
@@ -348,6 +395,34 @@ configuration:
         name: Metrics Path
         description: >-
           URL path where Prometheus metrics are exposed. Standard convention is /metrics but can be customized if needed (e.g., /prometheus, /custom-metrics). Only takes effect when metrics are enabled. Default: /metrics.
+
+  https:
+    name: HTTPS and DNS-over-HTTPS
+    description: >-
+      Enable Blocky's HTTPS listener on internal port 443. This can serve the API, metrics, and DNS-over-HTTPS endpoint. The Home Assistant add-on port 443/tcp must be mapped to a host port for clients to reach it.
+    fields:
+      enable:
+        name: Enable HTTPS Listener
+        description: >-
+          Start Blocky's HTTPS listener on internal port 443. If no certificate and key are configured, Blocky generates a self-signed certificate. Use trusted certificates for real DNS-over-HTTPS clients.
+      cert_file:
+        name: Certificate File
+        description: >-
+          Optional path to a TLS certificate file inside the add-on container, for example /ssl/fullchain.pem. Set together with Key File. Leave empty to let Blocky generate a self-signed certificate.
+      key_file:
+        name: Key File
+        description: >-
+          Optional path to the TLS private key file inside the add-on container, for example /ssl/privkey.pem. Set together with Certificate File. Leave empty to let Blocky generate a self-signed certificate.
+
+  http3:
+    name: DNS-over-HTTPS over HTTP/3
+    description: >-
+      Serve DNS-over-HTTPS over HTTP/3 (DoH3) on internal port 443/udp. Enabling this also starts Blocky's HTTPS listener on internal port 443 because HTTP/3 uses the HTTPS configuration. Map both 443/tcp and 443/udp in the add-on network settings when exposing this to clients.
+    fields:
+      enable:
+        name: Enable DoH3
+        description: >-
+          Enable DNS-over-HTTPS over HTTP/3. Requires clients that support DoH3 and network access to the mapped 443/udp port. Use a trusted certificate for production clients.
 
   query_log:
     name: Query Logging

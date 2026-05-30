@@ -8,7 +8,7 @@
       "customType": "regex",
       "description": "Track ARG versions annotated by renovate comments",
       "managerFilePatterns": [
-        "/(^|/)Dockerfile$/"
+        "/^blocky\\/Dockerfile$/"
       ],
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>[a-zA-Z-]+)\\s+depName=(?<depName>[^\\s]+)\\s*(?:#.*\\s*)*ARG\\s+[A-Z_]+_VERSION=(?<currentValue>[^\\s]+)"
@@ -18,7 +18,7 @@
       "customType": "regex",
       "description": "Track Home Assistant base image versions in build.yaml",
       "managerFilePatterns": [
-        "/(^|/)build\\.yaml$/"
+        "/^blocky\\/build\\.yaml$/"
       ],
       "matchStrings": [
         "\\s+\\w+:\\s+(?<depName>ghcr\\.io/home-assistant/[\\w-]+-base):(?<currentValue>[^\\s]+)"

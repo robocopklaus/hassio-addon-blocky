@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [4.2.0] - 2026-05-30
+
+### Changed
+
+- Blocky upgraded from v0.29.0 to v0.30.0
+
+### Added
+
+- DNS-over-QUIC (DoQ) upstreams: `quic:` / `quic://` resolvers plus optional `upstreams.quic.max_idle_timeout` and `upstreams.quic.keep_alive_period` tuning
+- Schedule-based blocking: `blocking.schedules` and `blocking.list_schedules` to activate allowlist or denylist groups only on selected weekdays or time windows
+- HTTPS/DoH listener on internal port 443 (`https.enable`, optional `https.cert_file` / `https.key_file`; self-signed certificate generated when unset)
+- DNS-over-HTTPS over HTTP/3 (DoH3) via `http3.enable` on internal port 443/udp
+- Optional add-on ports `443/tcp` and `443/udp` (disabled by default in Home Assistant's port settings)
+
+### Added (Upstream Blocky)
+
+- DNS-over-QUIC upstream support (RFC 9250)
+- Serve DoH over HTTP/3 (DoH3, RFC 9114)
+- Schedule-based blocking for deny/allowlist groups
+- DDR handling for the `resolver.arpa` zone (RFC 9462)
+- Validation of allow/denylist references in `clientGroupsBlock`
+
+### Fixed (Upstream Blocky)
+
+- `/api/query` response is no longer obfuscated when `log.privacy` is enabled
+- DNS bootstrapping now uses IPs from DNS stamps
+- RFC 4034 canonical DNS name ordering for NSEC coverage checks
+
 ## [4.1.1] - 2026-02-28
 
 ### Fixed
@@ -203,6 +231,7 @@ Additional breaking changes:
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
+[4.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...v4.0.0
