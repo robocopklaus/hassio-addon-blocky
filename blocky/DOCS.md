@@ -54,6 +54,8 @@ Configure domain blocking with denylists and exceptions.
 - **Block TTL**: How long clients cache blocked responses (default: `6h`)
 - **Schedules**: Activate allowlist or denylist groups only on selected weekdays or time windows.
 
+For schedules, set `start` and `end` together in `HH:MM` format, or leave both empty for an all-day schedule on the selected weekdays.
+
 **Default lists include StevenBlack hosts, Disconnect.me ads & tracking.**
 
 **Schedule example:**

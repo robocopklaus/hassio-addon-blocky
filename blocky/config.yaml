@@ -208,8 +208,8 @@ schema:
       - name: str
         weekdays:
           - list(mon|tue|wed|thu|fri|sat|sun)
-        start: str?
-        end: str?
+        start: match(^([01][0-9]|2[0-3]):[0-5][0-9]$)?
+        end: match(^([01][0-9]|2[0-3]):[0-5][0-9]$)?
     list_schedules:
       - list_name: str
         schedules:

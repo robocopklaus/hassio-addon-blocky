@@ -356,7 +356,7 @@ queryLog:
 {{- end }}
 
 {{- $httpsEnabled := or .https.enable .http3.enable }}
-{{- if and $httpsEnabled (or .https.cert_file .https.key_file) }}
+{{- if and $httpsEnabled .https.cert_file .https.key_file }}
 # TLS Certificate
 certFile: {{ .https.cert_file | quote }}
 keyFile: {{ .https.key_file | quote }}
