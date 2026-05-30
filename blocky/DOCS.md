@@ -13,6 +13,8 @@ Configure external DNS resolvers that Blocky queries after checking blocks and c
   - Standard DNS: `1.1.1.1` or `tcp+udp:8.8.8.8:53`
   - DNS-over-TLS: `tcp-tls:one.one.one.one`
   - DNS-over-HTTPS: `https://cloudflare-dns.com/dns-query`
+  - DNS-over-QUIC: `quic:dns.adguard.com` or `quic://dns.adguard.com`
+  - DNS stamps: `sdns://...`
 - **Strategy**: Query distribution method
   - `parallel_best` (default): Queries 2 random resolvers, returns fastest
   - `random`: Queries single random resolver (better privacy)
@@ -23,6 +25,7 @@ Configure external DNS resolvers that Blocky queries after checking blocks and c
   - `failOnError`: startup fails if initialization fails
   - `fast`: startup continues while upstream checks run in background
 - **Verify Upstreams on Start** (`start_verify`): if enabled, Blocky refuses startup when no upstream is reachable.
+- **QUIC Settings**: optional DoQ idle timeout and keep-alive tuning for `quic:` upstreams.
 
 If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup stalls and enable `start_verify` only when strict startup guarantees are desired.
 
@@ -49,8 +52,36 @@ Configure domain blocking with denylists and exceptions.
   - `zeroIp` (default): Returns 0.0.0.0 (IPv4) or :: (IPv6)
   - `nxDomain`: Returns NXDOMAIN (domain doesn't exist)
 - **Block TTL**: How long clients cache blocked responses (default: `6h`)
+- **Schedules**: Activate allowlist or denylist groups only on selected weekdays or time windows.
 
 **Default lists include StevenBlack hosts, Disconnect.me ads & tracking.**
+
+**Schedule example:**
+```yaml
+blocking:
+  denylists:
+    - name: social
+      sources:
+        - /config/lists/social.txt
+  client_groups_block:
+    - name: default
+      lists:
+        - social
+  schedules:
+    - name: workhours
+      weekdays:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+      start: "08:00"
+      end: "18:00"
+  list_schedules:
+    - list_name: social
+      schedules:
+        - workhours
+```
 
 ### Custom DNS
 
@@ -150,6 +181,14 @@ Synchronize cache and blocking state across multiple Blocky instances.
 ### Prometheus Metrics
 
 Enable monitoring endpoint at `http://[HOST]:4000/metrics`. Exposes DNS query statistics, cache performance, and blocking activity.
+
+### HTTPS, DoH, and DoH3
+
+The add-on can start Blocky's HTTPS listener on internal port `443`. This can serve HTTPS API access and DNS-over-HTTPS. Enable **DNS-over-HTTPS over HTTP/3** to also start DoH3 on internal port `443/udp`.
+
+Map the add-on's `443/tcp` port for HTTPS/DoH clients and `443/udp` for DoH3 clients. Both are disabled by default in Home Assistant's add-on port settings.
+
+If no certificate is configured, Blocky generates a self-signed certificate. For real clients, mount trusted certificate files under `/ssl` and configure `https.cert_file` and `https.key_file`, for example `/ssl/fullchain.pem` and `/ssl/privkey.pem`.
 
 ### Client Lookup
 

@@ -24,6 +24,16 @@ upstreams:
 {{- if .upstreams.timeout }}
   timeout: {{ .upstreams.timeout | quote }}
 {{- end }}
+{{- $quic := .upstreams.quic }}
+{{- if or $quic.max_idle_timeout $quic.keep_alive_period }}
+  quic:
+{{- if $quic.max_idle_timeout }}
+    maxIdleTimeout: {{ $quic.max_idle_timeout | quote }}
+{{- end }}
+{{- if $quic.keep_alive_period }}
+    keepAlivePeriod: {{ $quic.keep_alive_period | quote }}
+{{- end }}
+{{- end }}
 {{- if .upstreams.start_verify }}
   startVerifyUpstream: true
 {{- end }}
@@ -162,7 +172,9 @@ clientLookup:
 {{- $denylists := $blocking.denylists }}
 {{- $allowlists := $blocking.allowlists }}
 {{- $clientGroups := $blocking.client_groups_block }}
-{{- if or $denylists $allowlists $clientGroups }}
+{{- $schedules := $blocking.schedules }}
+{{- $listSchedules := $blocking.list_schedules }}
+{{- if or $denylists $allowlists $clientGroups $schedules $listSchedules }}
 # Blocking & Allowlists
 blocking:
 {{- if $denylists }}
@@ -194,6 +206,35 @@ blocking:
     {{ $group.name | quote }}:
 {{- range $listName := $group.lists }}
       - {{ $listName | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $schedules }}
+  schedules:
+{{- range $schedule := $schedules }}
+{{- if and $schedule.name $schedule.weekdays }}
+    {{ $schedule.name | quote }}:
+      weekdays:
+{{- range $weekday := $schedule.weekdays }}
+        - {{ $weekday | quote }}
+{{- end }}
+{{- if $schedule.start }}
+      start: {{ $schedule.start | quote }}
+{{- end }}
+{{- if $schedule.end }}
+      end: {{ $schedule.end | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $listSchedules }}
+  listSchedules:
+{{- range $entry := $listSchedules }}
+{{- if and $entry.list_name $entry.schedules }}
+    {{ $entry.list_name | quote }}:
+{{- range $scheduleName := $entry.schedules }}
+      - {{ $scheduleName | quote }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -314,10 +355,27 @@ queryLog:
 {{- end }}
 {{- end }}
 
+{{- $httpsEnabled := or .https.enable .http3.enable }}
+{{- if and $httpsEnabled (or .https.cert_file .https.key_file) }}
+# TLS Certificate
+certFile: {{ .https.cert_file | quote }}
+keyFile: {{ .https.key_file | quote }}
+
+{{- end }}
 # Ports & Addresses
 ports:
   http:
     - 4000 # Hardcoded since this is the internal Docker port
+{{- if $httpsEnabled }}
+  https:
+    - 443 # Hardcoded since this is the internal Docker HTTPS/DoH port
+{{- end }}
+
+{{- if .http3.enable }}
+# DNS-over-HTTPS over HTTP/3
+http3:
+  enable: true
+{{- end }}
 
 # Logging
 log:
