@@ -12,7 +12,7 @@ configuration:
       init_strategy:
         name: Init Strategy
         description: >-
-          Tests the configured resolvers for each group on initialization. Strategies: blocking (default, initialization completes before DNS starts, errors are logged but continues if possible), failOnError (verifies upstreams on start and refuses to start if none are reachable - use this instead of the former "Verify Upstreams on Start" option), or fast (DNS starts immediately, initialization happens in background).
+          Tests the configured resolvers for each group on initialization. Strategies: blocking (default, initialization completes before DNS starts, errors are logged but continues if possible), failOnError (verifies upstreams on start and refuses to start if none are reachable - use this instead of the deprecated "Verify Upstreams on Start" option), or fast (DNS starts immediately, initialization happens in background).
       strategy:
         name: Strategy
         description: >-
@@ -21,6 +21,10 @@ configuration:
         name: Timeout
         description: >-
           Maximum time to wait for a response from upstream DNS servers before considering them unreachable. Controls how long Blocky waits before marking an upstream resolver as failed and trying the next one. Format: duration string like 2s (2 seconds), 5s (5 seconds), or 500ms (500 milliseconds). Default: 2s if not specified. Increase for slow or distant resolvers (satellite internet, VPN), decrease for faster failure detection in local networks.
+      start_verify:
+        name: Verify Upstreams on Start (deprecated)
+        description: >-
+          DEPRECATED - use Init Strategy "failOnError" instead. Kept for backward compatibility so existing configurations keep working without changes. When enabled, it is mapped to init strategy "failOnError" (Blocky refuses to start if no upstream is reachable). Leave disabled and set Init Strategy directly. This option will be removed in a future release.
       quic:
         name: DNS-over-QUIC Settings
         description: >-
