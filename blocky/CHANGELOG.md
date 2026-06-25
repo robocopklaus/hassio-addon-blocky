@@ -6,15 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [5.0.0] - 2026-06-25
 
+Bundles all changes since 4.1.1 (the previously documented 4.2.0 was never released; its contents ship here).
+
 ### Changed
 
-- Blocky upgraded from v0.30.0 to v0.32.1
+- Blocky upgraded from v0.29.0 to v0.32.1
 
 ### Added
 
 - DNS rebinding protection: `rebinding_protection.enable` and `rebinding_protection.allowed_domains` drop upstream answers that resolve public domains to private IP ranges (conflicts with Conditional DNS for local domains — allowlist them or keep it disabled)
 - SQLite query log: `query_log.type: sqlite` writes to a single database file, defaulting to `/config/querylog.db` (no external database required)
 - On-disk block-list download cache: `blocking.download_cache` persists downloaded lists under `/data/cache/lists` for faster restarts and resilience during source outages
+- DNS-over-QUIC (DoQ) upstreams: `quic:` / `quic://` resolvers plus optional `upstreams.quic.max_idle_timeout` and `upstreams.quic.keep_alive_period` tuning
+- Schedule-based blocking: `blocking.schedules` and `blocking.list_schedules` to activate allowlist or denylist groups only on selected weekdays or time windows
+- HTTPS/DoH listener on internal port 443 (`https.enable`, optional `https.cert_file` / `https.key_file`; self-signed certificate generated when unset)
+- DNS-over-HTTPS over HTTP/3 (DoH3) via `http3.enable` on internal port 443/udp
+- Optional add-on ports `443/tcp` and `443/udp` (disabled by default in Home Assistant's port settings)
 
 ### Deprecated
 
@@ -28,30 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Per-client DNS rate limiting
 - In-memory statistics subsystem with `/api/stats` REST endpoint
 - Sharded result cache to remove the single-lock read ceiling
-
-### Fixed (Upstream Blocky)
-
-- DNSSEC validation bypass & cache-scope pollution (GHSA-x845-2f78-7v36)
-- DNSSEC: no longer caches transient Indeterminate results; only validates public-upstream answers
-- Recursive RLock deadlock in blocking group resolution
-- Browser CORS preflight handling for custom headers and Private Network Access
-
-## [4.2.0] - 2026-05-30
-
-### Changed
-
-- Blocky upgraded from v0.29.0 to v0.30.0
-
-### Added
-
-- DNS-over-QUIC (DoQ) upstreams: `quic:` / `quic://` resolvers plus optional `upstreams.quic.max_idle_timeout` and `upstreams.quic.keep_alive_period` tuning
-- Schedule-based blocking: `blocking.schedules` and `blocking.list_schedules` to activate allowlist or denylist groups only on selected weekdays or time windows
-- HTTPS/DoH listener on internal port 443 (`https.enable`, optional `https.cert_file` / `https.key_file`; self-signed certificate generated when unset)
-- DNS-over-HTTPS over HTTP/3 (DoH3) via `http3.enable` on internal port 443/udp
-- Optional add-on ports `443/tcp` and `443/udp` (disabled by default in Home Assistant's port settings)
-
-### Added (Upstream Blocky)
-
 - DNS-over-QUIC upstream support (RFC 9250)
 - Serve DoH over HTTP/3 (DoH3, RFC 9114)
 - Schedule-based blocking for deny/allowlist groups
@@ -60,6 +43,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed (Upstream Blocky)
 
+- DNSSEC validation bypass & cache-scope pollution (GHSA-x845-2f78-7v36)
+- DNSSEC: no longer caches transient Indeterminate results; only validates public-upstream answers
+- Recursive RLock deadlock in blocking group resolution
+- Browser CORS preflight handling for custom headers and Private Network Access
 - `/api/query` response is no longer obfuscated when `log.privacy` is enabled
 - DNS bootstrapping now uses IPs from DNS stamps
 - RFC 4034 canonical DNS name ordering for NSEC coverage checks
