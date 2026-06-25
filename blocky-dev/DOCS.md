@@ -22,12 +22,13 @@ Configure external DNS resolvers that Blocky queries after checking blocks and c
 - **Timeout**: Max wait time for upstream response (default: `2s`)
 - **Init Strategy**:
   - `blocking` (default): startup waits for upstream initialization
-  - `failOnError`: startup fails if initialization fails
+  - `failOnError`: verifies upstreams on start and refuses to start if none are reachable (replaces the former `start_verify` option)
   - `fast`: startup continues while upstream checks run in background
-- **Verify Upstreams on Start** (`start_verify`): if enabled, Blocky refuses startup when no upstream is reachable.
 - **QUIC Settings**: optional DoQ idle timeout and keep-alive tuning for `quic:` upstreams.
 
-If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup stalls and enable `start_verify` only when strict startup guarantees are desired.
+If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup stalls, or `init_strategy: failOnError` when you want startup to fail unless an upstream is reachable.
+
+> **Migration note:** the separate `start_verify` option was removed in favor of `init_strategy: failOnError`, which Blocky now uses to express the same "verify upstreams on start" behavior. If you previously set `start_verify: true`, set `init_strategy: failOnError` instead.
 
 ### Bootstrap DNS
 
@@ -52,6 +53,7 @@ Configure domain blocking with denylists and exceptions.
   - `zeroIp` (default): Returns 0.0.0.0 (IPv4) or :: (IPv6)
   - `nxDomain`: Returns NXDOMAIN (domain doesn't exist)
 - **Block TTL**: How long clients cache blocked responses (default: `6h`)
+- **Download Cache**: Persist downloaded lists to disk (`/data/cache/lists`) so they survive restarts; uses HTTP conditional requests to skip unchanged lists and keeps serving the last good copy during source outages (default: off)
 - **Schedules**: Activate allowlist or denylist groups only on selected weekdays or time windows.
 
 For schedules, set `start` and `end` together in `HH:MM` format, or leave both empty for an all-day schedule on the selected weekdays.
@@ -138,6 +140,15 @@ Optional ECS forwarding controls for upstream DNS requests.
 
 ECS can improve CDN localization but may reduce privacy by sharing network location hints.
 
+### DNS Rebinding Protection
+
+Drop upstream answers that resolve public domains to private IP ranges (RFC 1918, link-local, loopback), returning an empty `NOERROR` response instead.
+
+- **enable**: turn protection on (default: off)
+- **allowed_domains**: domains exempt from inspection (subdomains included)
+
+**WARNING:** this inspects answers from *upstream* resolvers, so it conflicts with Conditional DNS setups that legitimately return private IPs (e.g. forwarding `fritz.box` or your local domain to your router). If you use Conditional DNS for local devices, keep this disabled or add those domains to `allowed_domains`. Custom DNS mappings are answered locally and are unaffected.
+
 ### Caching
 
 DNS response caching reduces upstream queries and improves performance.
@@ -158,10 +169,11 @@ Record DNS queries to various backends. **WARNING:** Logs contain sensitive netw
 - `csv`: Daily rotating CSV files
 - `csv-client`: Separate CSV per client
 - `console`: Output to add-on logs
+- `sqlite`: Local SQLite database file (no external server required)
 - `mysql`, `postgresql`, `timescale`: External databases
 
 **Configuration:**
-- **Target**: Directory for CSV files (e.g., `/config/query_logs`) when `type` is `csv` or `csv-client`
+- **Target**: Directory for CSV files (e.g., `/config/query_logs`) for `csv`/`csv-client`; for `sqlite`, a database file path (default `/config/querylog.db`)
 - **Database**: Host, port, username, password, database name
 - **Fields**: Limit logged data (clientIP, clientName, responseReason, responseAnswer, question, duration)
 - **Retention**: Auto-delete logs older than X days (0 = keep forever)
@@ -430,7 +442,7 @@ If all upstream resolvers are unreachable, startup behavior depends on upstream 
 
 - `init_strategy: blocking` can delay readiness while checks run
 - `init_strategy: fast` starts DNS sooner and resolves upstream availability in background
-- `start_verify: true` fails startup when no upstream is reachable
+- `init_strategy: failOnError` fails startup when no upstream is reachable
 
 Use `fast` for unstable WAN links and verify behavior in your environment.
 

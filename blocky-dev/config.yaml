@@ -1,5 +1,5 @@
 name: Blocky (Dev)
-version: dev-8b82aaf
+version: dev-55c41a5
 slug: blocky_dev
 description: Fast and lightweight DNS proxy and ad-blocker for your network
 url: https://github.com/robocopklaus/hassio-addon-blocky/tree/main/blocky
@@ -35,7 +35,6 @@ options:
     init_strategy: blocking
     strategy: parallel_best
     timeout: 2s
-    start_verify: false
     quic:
       max_idle_timeout: ""
       keep_alive_period: ""
@@ -63,6 +62,9 @@ options:
     enable: false
     prefixes: []
     exclusion_set: []
+  rebinding_protection:
+    enable: false
+    allowed_domains: []
   client_lookup:
     upstream: ""
     single_name_order: []
@@ -86,6 +88,7 @@ options:
     list_schedules: []
     block_type: zeroIp
     block_ttl: 6h
+    download_cache: false
   caching:
     min_time: ""
     max_time: ""
@@ -140,7 +143,6 @@ schema:
     init_strategy: list(blocking|failOnError|fast)?
     strategy: list(parallel_best|random|strict)?
     timeout: str?
-    start_verify: bool?
     user_agent: str?
     quic:
       max_idle_timeout: str?
@@ -182,6 +184,10 @@ schema:
       - str
     exclusion_set:
       - str
+  rebinding_protection:
+    enable: bool?
+    allowed_domains:
+      - str
   client_lookup:
     upstream: str?
     single_name_order:
@@ -215,6 +221,7 @@ schema:
           - str
     block_type: match(^(zeroIp|nxDomain|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}|([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4})(,\s*((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}|([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}))*)$)?
     block_ttl: str?
+    download_cache: bool?
   caching:
     min_time: str?
     max_time: str?
@@ -244,7 +251,7 @@ schema:
   http3:
     enable: bool?
   query_log:
-    type: list(|none|csv|csv-client|console|mysql|postgresql|timescale)?
+    type: list(|none|csv|csv-client|console|sqlite|mysql|postgresql|timescale)?
     target: str?
     db_host: str?
     db_port: int(0,65535)?

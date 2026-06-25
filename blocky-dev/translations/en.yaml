@@ -12,7 +12,7 @@ configuration:
       init_strategy:
         name: Init Strategy
         description: >-
-          Tests the configured resolvers for each group on initialization. Strategies: blocking (default, initialization completes before DNS starts, errors are logged but continues if possible), failOnError (like blocking but exits on failure), or fast (DNS starts immediately, initialization happens in background).
+          Tests the configured resolvers for each group on initialization. Strategies: blocking (default, initialization completes before DNS starts, errors are logged but continues if possible), failOnError (verifies upstreams on start and refuses to start if none are reachable - use this instead of the former "Verify Upstreams on Start" option), or fast (DNS starts immediately, initialization happens in background).
       strategy:
         name: Strategy
         description: >-
@@ -21,12 +21,6 @@ configuration:
         name: Timeout
         description: >-
           Maximum time to wait for a response from upstream DNS servers before considering them unreachable. Controls how long Blocky waits before marking an upstream resolver as failed and trying the next one. Format: duration string like 2s (2 seconds), 5s (5 seconds), or 500ms (500 milliseconds). Default: 2s if not specified. Increase for slow or distant resolvers (satellite internet, VPN), decrease for faster failure detection in local networks.
-      start_verify:
-        name: Verify Upstreams on Start
-        description: >-
-          When enabled, Blocky verifies that configured upstream DNS servers are
-          reachable during startup. If no upstream is reachable, Blocky will fail
-          to start instead of running with broken DNS resolution.
       quic:
         name: DNS-over-QUIC Settings
         description: >-
@@ -192,6 +186,20 @@ configuration:
         description: >-
           IPv6 address ranges excluded from DNS64 synthesis. Queries resolving to addresses in these ranges will not trigger DNS64 synthesis. Leave empty to use Blocky's default exclusion set (recommended). Only customize for advanced network configurations with specific exclusion requirements.
 
+  rebinding_protection:
+    name: DNS Rebinding Protection
+    description: >-
+      Protect against DNS rebinding attacks by dropping upstream answers that resolve public domains to private IP ranges (RFC 1918, link-local, loopback). When triggered, Blocky returns an empty NOERROR response instead of the private address. WARNING: This inspects answers returned by UPSTREAM resolvers, so it conflicts with Conditional DNS setups that legitimately return private IPs (for example forwarding fritz.box or your local domain to your router). If you use Conditional DNS for local devices, either keep this disabled or add those domains to the Allowed Domains list below. Does not affect Custom DNS mappings, which are answered locally. Default: disabled.
+    fields:
+      enable:
+        name: Enable Rebinding Protection
+        description: >-
+          Activate DNS rebinding protection. When true, upstream answers pointing public domains at private/local IP addresses are dropped and returned as empty NOERROR. Default: false (disabled).
+      allowed_domains:
+        name: Allowed Domains
+        description: >-
+          Domains exempt from rebinding inspection. Add domains that are expected to resolve to private IPs through your upstream or conditional resolvers (for example your router's local domain like fritz.box, or an intranet domain). Subdomains are included automatically. Leave empty to inspect all domains.
+
   client_lookup:
     name: Client Name Lookup
     description: >-
@@ -305,6 +313,10 @@ configuration:
         name: Block Response TTL
         description: >-
           Time-To-Live (cache duration) for blocked domain responses. Controls how long clients cache blocked responses before re-querying. Format: duration string like 10s (10 seconds), 5m (5 minutes), or 6h (6 hours). Default: 6h. Lower values (e.g., 10s, 1m) allow faster recovery after removing domains from blocklists; higher values (e.g., 12h, 24h) reduce DNS query load for frequently blocked domains. Only applies when using zeroIp or nxDomain block types. Default: 6h.
+      download_cache:
+        name: Cache Downloaded Lists on Disk
+        description: >-
+          Persist downloaded block/allow lists to disk so they survive restarts. When enabled, Blocky uses HTTP conditional requests to skip re-downloading unchanged lists (faster startup) and keeps serving the last good copy if a source is temporarily unreachable. The cache is stored internally at /data/cache/lists (add-on-private, persists across restarts and updates) and is fully regenerable, so it is not exposed in your config folder. Default: false (downloads are stateless).
 
   caching:
     name: Caching
@@ -432,11 +444,11 @@ configuration:
       type:
         name: Log Type
         description: >-
-          Storage backend for query logs. Options: "" (blank, disabled by default - no logging), none (explicit disable, equivalent to blank), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: "" (blank, disabled).
+          Storage backend for query logs. Options: "" (blank, disabled by default - no logging), none (explicit disable, equivalent to blank), csv (daily rotating CSV files in target directory), csv-client (separate daily CSV file per client for organized analysis), console (output to add-on logs, visible in Home Assistant), sqlite (local SQLite database file, no external server required - the simplest persistent option), mysql (external MySQL/MariaDB database), postgresql (external PostgreSQL database), timescale (external Timescale database for time-series optimization). CSV and SQLite logs are stored in the /config directory by default. Database options require external database setup with connection details below. Default: "" (blank, disabled).
       target:
-        name: Target Directory
+        name: Target Path
         description: >-
-          Directory path for CSV log files. Only applies to csv and csv-client types. Logs are written as daily rotating files (YYYY-MM-DD.csv) in this directory. Use /config/query_logs for persistence across restarts. Directory is created automatically if it doesn't exist. /config/ is the container-internal path; on the Home Assistant host the same location is available under /addon_config/<repository>_blocky/ (for example /addon_config/<repository>_blocky/query_logs/). For mysql/postgresql/timescale logging, target is computed automatically from db_* fields and this option is ignored. Leave empty to use Blocky's default location for CSV logging. Example: /config/query_logs
+          For csv and csv-client types this is a DIRECTORY for daily rotating files (YYYY-MM-DD.csv); for sqlite it is a single database FILE path. Use a location under /config/ for persistence across restarts; the directory is created automatically if it doesn't exist. /config/ is the container-internal path; on the Home Assistant host the same location is available under /addon_config/<repository>_blocky/ (for example /addon_config/<repository>_blocky/query_logs/). For sqlite, leave empty to use the default /config/querylog.db (Blocky also creates -wal and -shm side files). For mysql/postgresql/timescale logging, target is computed automatically from db_* fields and this option is ignored. Leave empty to use Blocky's default location for CSV logging. Examples: /config/query_logs (csv) or /config/querylog.db (sqlite)
       db_host:
         name: Database Host
         description: >-
