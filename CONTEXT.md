@@ -38,6 +38,16 @@ _Avoid_: test case, sample, scenario
 The committed `expected.yml` snapshot of a fixture's Rendered config. The byte-for-byte contract; regenerated only via `--update`, never by CI.
 _Avoid_: snapshot, expected output, baseline
 
+### Config migration
+
+**Passive migration**:
+The only migration lever this add-on has. Home Assistant does not auto-migrate add-on options: on a schema change it keeps persisted values for keys still in the schema and silently drops the rest. So an old config is "migrated" not by rewriting the user's stored `options.json` (HA owns that file and would clobber any rewrite) but by the schema **retaining** the deprecated key and the template **translating** its old shape into the new Rendered config on every render. The `start_verify` → `init_strategy` mapping is the reference example.
+_Avoid_: config upgrade, options rewrite
+
+**Deprecated key**:
+An add-on option kept in the schema past its replacement purely so HA does not strip a user's persisted value, and translated by the template into its current equivalent. Removing it from the schema is a breaking change that silently deletes that setting for existing users.
+_Avoid_: legacy option, old key
+
 ### Failure policy (see ADR-0002)
 
 **Core feature**:
