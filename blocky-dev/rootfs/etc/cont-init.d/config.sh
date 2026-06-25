@@ -85,6 +85,21 @@ if ! chmod 600 "${ADDON_CONFIG_PATH}/config.yml" "${CONFIG_PATH}/config.yml"; th
     exit 1
 fi
 
+# upstreams is a CORE feature (ADR-0002): without a "default" group that has a
+# resolver, Blocky starts but cannot resolve DNS, and `blocky validate` does NOT
+# catch it. Fail-fast here. This text-parses the rendered config, so it runs in
+# Standard Mode only (ADR-0004); a hand-written custom config is the operator's
+# own responsibility and Blocky's startup logging surfaces upstream errors there.
+if ! bashio::config.true 'custom_config'; then
+    # shellcheck source=/dev/null
+    source /usr/lib/blocky/guards.sh
+    if ! upstreams_default_has_resolver "${CONFIG_PATH}/config.yml"; then
+        bashio::log.fatal "No 'default' upstream group with a resolver was found in the generated configuration."
+        bashio::log.fatal "Blocky cannot resolve DNS without it. Set upstreams → groups → a 'default' group with at least one resolver in the add-on options."
+        exit 1
+    fi
+fi
+
 # HTTPS/DoH is a side feature (ADR-0002): when enabled without a certificate the
 # template drops it rather than open :443 with no cert (which would crash Blocky).
 # Warn so the degrade is not silent. DNS resolution is unaffected.
