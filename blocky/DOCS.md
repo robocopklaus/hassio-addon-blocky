@@ -61,6 +61,8 @@ For schedules, set `start` and `end` together in `HH:MM` format, or leave both e
 
 **Default lists include StevenBlack hosts, Disconnect.me ads & tracking.**
 
+For local list files, enter `/config/...` paths in the add-on options or custom Blocky YAML. To create or edit those files in Home Assistant, open this add-on's folder under `/addon_configs/...`.
+
 **Schedule example:**
 ```yaml
 blocking:
@@ -174,13 +176,13 @@ Record DNS queries to various backends. **WARNING:** Logs contain sensitive netw
 - `mysql`, `postgresql`, `timescale`: External databases
 
 **Configuration:**
-- **Target**: Directory for CSV files (e.g., `/config/query_logs`) for `csv`/`csv-client`; for `sqlite`, a database file path (default `/config/querylog.db`)
+- **Target**: Directory for CSV files (default `/config/query_logs`) for `csv`/`csv-client`; for `sqlite`, a database file path (default `/config/querylog.db`)
 - **Database**: Host, port, username, password, database name
 - **Fields**: Limit logged data (clientIP, clientName, responseReason, responseAnswer, question, duration)
 - **Retention**: Auto-delete logs older than X days (0 = keep forever)
 - **Flush Interval**: Batch write frequency (default: `30s`)
 
-Path note: `/config/...` is the container path. On the Home Assistant host, the same files are accessible under `/addon_config/<repository>_blocky/...`.
+Path note: when entering a file path in add-on options or custom Blocky YAML, use the container path `/config/...`. To create, view, or edit those files in Home Assistant, open this add-on's folder under `/addon_configs/...`; the exact folder name includes the repository identifier and add-on slug assigned by Home Assistant.
 
 For `mysql`, `postgresql`, and `timescale` types, Blocky constructs the target connection string from `db_*` fields; `target` is not used directly.
 
@@ -220,7 +222,7 @@ Resolve client IP addresses to friendly names using reverse DNS and static mappi
 
 ### Custom Config Mode
 
-Enable to use manual YAML configuration at `/addon_config/<repository>_blocky/config.yml`.
+Enable to use manual YAML configuration. Create or edit `config.yml` in this add-on's folder under `/addon_configs/`; Blocky reads the same file inside the add-on container as `/config/config.yml`.
 
 **Important:** when enabled, all UI settings are ignored. The UI remains visible due to Home Assistant limitations, but values there are not applied. Treat UI fields as read-only in this mode.
 
@@ -465,7 +467,7 @@ Schema migrations are handled by template/config updates shipped with the add-on
 
 ### Custom config mode
 
-You are responsible for adapting `/addon_config/<repository>_blocky/config.yml` when upstream Blocky schema changes.
+You are responsible for adapting `config.yml` in this add-on's folder under `/addon_configs/` when upstream Blocky schema changes. Blocky reads the same file inside the add-on container as `/config/config.yml`.
 
 Recommended process:
 

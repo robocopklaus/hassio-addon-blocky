@@ -248,7 +248,7 @@ configuration:
           sources:
             name: Sources
             description: >-
-              URLs or local file paths to block lists. Examples include https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts or /config/allowlist.txt. Blocky downloads and merges all sources under this denylist.
+              URLs or local file paths to block lists. When entering a local path here, use the add-on container path under /config/ (for example /config/denylists/ads.txt). To edit that file in Home Assistant, open this add-on's folder under /addon_configs/. Blocky downloads and merges all sources under this denylist.
       allowlists:
         name: Allowlists
         description: >-
@@ -261,7 +261,7 @@ configuration:
           sources:
             name: Sources
             description: >-
-              URLs or local file paths containing newline-separated domains. Local files should live under /config/ (for example /config/allowlists/domains.txt). /config/ is the container-internal path; on the Home Assistant host the same location is available under /addon_config/<repository>_blocky/.
+              URLs or local file paths containing newline-separated domains. When entering a local path here, use the add-on container path under /config/ (for example /config/allowlists/domains.txt). To edit that file in Home Assistant, open this add-on's folder under /addon_configs/.
       client_groups_block:
         name: Client Group Assignments
         description: >-
@@ -452,7 +452,7 @@ configuration:
       target:
         name: Target Path
         description: >-
-          For csv and csv-client types this is a DIRECTORY for daily rotating files (YYYY-MM-DD.csv); for sqlite it is a single database FILE path. Use a location under /config/ for persistence across restarts; the directory is created automatically if it doesn't exist. /config/ is the container-internal path; on the Home Assistant host the same location is available under /addon_config/<repository>_blocky/ (for example /addon_config/<repository>_blocky/query_logs/). For sqlite, leave empty to use the default /config/querylog.db (Blocky also creates -wal and -shm side files). For mysql/postgresql/timescale logging, target is computed automatically from db_* fields and this option is ignored. Leave empty to use Blocky's default location for CSV logging. Examples: /config/query_logs (csv) or /config/querylog.db (sqlite)
+          For csv and csv-client types this is a DIRECTORY for daily rotating files (YYYY-MM-DD.csv); for sqlite it is a single database FILE path. When entering a local target here, use the add-on container path under /config/ for persistence across restarts; the directory is created automatically if it doesn't exist. To view or edit those files in Home Assistant, open this add-on's folder under /addon_configs/. Leave empty to use /config/query_logs for csv/csv-client or /config/querylog.db for sqlite (Blocky also creates -wal and -shm side files). For mysql/postgresql/timescale logging, target is computed automatically from db_* fields and this option is ignored. Examples: /config/query_logs (csv) or /config/querylog.db (sqlite)
       db_host:
         name: Database Host
         description: >-
@@ -515,4 +515,4 @@ configuration:
   custom_config:
     name: Custom Configuration Mode
     description: >-
-      Enable custom configuration mode to manually edit Blocky's configuration file directly. WARNING: when enabled, all Home Assistant UI options are ignored and only /addon_config/<repository>_blocky/config.yml is used. Use this for advanced Blocky features not available in the UI, such as per-client blocking rules, query logging, regex patterns, and custom DNS records. On first enable, the add-on generates an initial config from your current UI settings as a starting point. See documentation for migration and operational guidance. Default: false (use UI configuration).
+      Enable custom configuration mode to manually edit Blocky's configuration file directly. WARNING: when enabled, all Home Assistant UI options are ignored. Create or edit config.yml in this add-on's folder under /addon_configs/; Blocky reads the same file inside the add-on container as /config/config.yml. Use this for advanced Blocky features not available in the UI, such as per-client blocking rules, query logging, regex patterns, and custom DNS records. On first enable, the add-on generates an initial config from your current UI settings as a starting point. See documentation for migration and operational guidance. Default: false (use UI configuration).

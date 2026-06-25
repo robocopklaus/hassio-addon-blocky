@@ -48,7 +48,7 @@ Blocky binary (DNS on :53, HTTP API on :4000)
 ### Two Configuration Modes
 
 1. **Standard Mode**: HA UI options (defined in `blocky/config.yaml`) are rendered through `blocky.gtpl` into Blocky YAML at `/etc/blocky/config.yml`.
-2. **Custom Config Mode**: User places a complete Blocky YAML at `/addon_config/<repo>_blocky/config.yml` (maps to `/config/config.yml` inside container). Template rendering is bypassed entirely.
+2. **Custom Config Mode**: User places a complete Blocky YAML in this add-on's folder under Home Assistant's `/addon_configs/` area (mounted as `/config/config.yml` inside the container). Template rendering is bypassed entirely.
 
 ### Configuration Translation (the core complexity)
 

@@ -224,7 +224,7 @@ Configuration changes (all automatically migrated):
 - DNS caching enabled by default (5-30 minutes with prefetching)
 - "tracking" deny list group in defaults
 - Bootstrap DNS defaults (1.1.1.1, 8.8.8.8)
-- Persistent configuration file at `/addon_config/<repo>_blocky/config.yml`
+- Persistent configuration file at `/addon_configs/.../config.yml` in Home Assistant
 - Health checks for monitoring
 - Complete English translations with detailed descriptions
 
