@@ -25,7 +25,8 @@ if bashio::config.true 'custom_config'; then
         # Custom config mode: preserve existing manual configuration
         bashio::log.warning "Custom config enabled: Using existing config.yml"
         bashio::log.warning "UI options are IGNORED"
-        bashio::log.info "Edit /addon_config/<repository>_blocky/config.yml to modify your configuration"
+        bashio::log.info "Edit config.yml in this add-on's Home Assistant /addon_configs/... folder to modify your configuration"
+        bashio::log.info "Inside the add-on container, this file is /config/config.yml"
     else
         # Generate initial config for first run
         bashio::log.info "Custom config enabled: Generating initial configuration..."
@@ -48,7 +49,8 @@ if bashio::config.true 'custom_config'; then
             exit 1
         fi
 
-        bashio::log.info "Initial config created. You can now customize /addon_config/<repository>_blocky/config.yml"
+        bashio::log.info "Initial config created. You can now customize config.yml in this add-on's Home Assistant /addon_configs/... folder"
+        bashio::log.info "Inside the add-on container, this file is /config/config.yml"
     fi
 else
     # Standard mode: always regenerate configuration from addon options
@@ -94,6 +96,8 @@ case "${QUERY_LOG_TYPE}" in
         # target is the directory that holds the daily-rotating files
         if bashio::config.has_value 'query_log.target'; then
             QUERY_LOG_PATH=$(bashio::config 'query_log.target')
+        else
+            QUERY_LOG_PATH="/config/query_logs"
         fi
         ;;
     sqlite)

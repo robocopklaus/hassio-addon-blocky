@@ -78,7 +78,7 @@ Configure the add-on through the Home Assistant UI. Your settings are converted 
 For advanced users who want full control:
 
 1. Enable **Custom Config** in the add-on configuration
-2. Place your `config.yml` in `/addon_config/<repository>_blocky/`
+2. Place your `config.yml` in this add-on's folder under Home Assistant's `/addon_configs/` area. Blocky reads the same file inside the add-on container as `/config/config.yml`.
 3. Your custom configuration will be used directly
 
 **Warning:** In custom config mode, UI settings are ignored and your configuration file will not be overwritten. Treat the UI as read-only in this mode.
@@ -128,7 +128,7 @@ You can disable these or add your own custom lists in the configuration.
 
 ### Password Storage
 
-**Important:** Home Assistant encrypts passwords in the add-on configuration (using the `password` field type), but they must be written in plaintext to the generated Blocky configuration file (`/addon_config/<repository>_blocky/config.yml`) for Blocky to read them.
+**Important:** Home Assistant encrypts passwords in the add-on configuration (using the `password` field type), but they must be written in plaintext to the generated Blocky configuration file for Blocky to read them. In Home Assistant this file lives in this add-on's folder under `/addon_configs/`; inside the add-on container it is `/config/config.yml`.
 
 **What This Means:**
 - Passwords are encrypted in Home Assistant's add-on configuration storage ✓

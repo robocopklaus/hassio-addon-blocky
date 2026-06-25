@@ -336,9 +336,7 @@ prometheus:
 queryLog:
   type: {{ $queryLog.type | quote }}
 {{- if or (eq $queryLog.type "csv") (eq $queryLog.type "csv-client") }}
-{{- if $queryLog.target }}
-  target: {{ $queryLog.target | quote }}
-{{- end }}
+  target: {{ if $queryLog.target }}{{ $queryLog.target | quote }}{{ else }}"/config/query_logs"{{ end }}
 {{- end }}
 {{- if eq $queryLog.type "sqlite" }}
   target: {{ if $queryLog.target }}{{ $queryLog.target | quote }}{{ else }}"/config/querylog.db"{{ end }}
