@@ -16,9 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - SQLite query log: `query_log.type: sqlite` writes to a single database file, defaulting to `/config/querylog.db` (no external database required)
 - On-disk block-list download cache: `blocking.download_cache` persists downloaded lists under `/data/cache/lists` for faster restarts and resilience during source outages
 
-### Removed
+### Deprecated
 
-- **BREAKING:** the `upstreams.start_verify` option has been removed. Blocky deprecated the underlying `startVerifyUpstream` setting and folded it into the init strategy. Set `init_strategy: failOnError` to keep the "verify upstreams on start, fail if none reachable" behavior. See the migration note in DOCS.md.
+- `upstreams.start_verify` is deprecated. Blocky folded the underlying `startVerifyUpstream` setting into the init strategy. The option is **still accepted** so existing configurations keep working unchanged, and `start_verify: true` is automatically mapped to `init_strategy: failOnError`. Switch to `init_strategy` at your convenience; `start_verify` will be removed in a future major release.
 
 ### Added (Upstream Blocky)
 

@@ -22,13 +22,14 @@ Configure external DNS resolvers that Blocky queries after checking blocks and c
 - **Timeout**: Max wait time for upstream response (default: `2s`)
 - **Init Strategy**:
   - `blocking` (default): startup waits for upstream initialization
-  - `failOnError`: verifies upstreams on start and refuses to start if none are reachable (replaces the former `start_verify` option)
+  - `failOnError`: verifies upstreams on start and refuses to start if none are reachable (use this instead of the deprecated `start_verify`)
   - `fast`: startup continues while upstream checks run in background
+- **Verify Upstreams on Start** (`start_verify`): **deprecated** — kept for backward compatibility. When enabled it is mapped to `init_strategy: failOnError`. Prefer setting Init Strategy directly.
 - **QUIC Settings**: optional DoQ idle timeout and keep-alive tuning for `quic:` upstreams.
 
 If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup stalls, or `init_strategy: failOnError` when you want startup to fail unless an upstream is reachable.
 
-> **Migration note:** the separate `start_verify` option was removed in favor of `init_strategy: failOnError`, which Blocky now uses to express the same "verify upstreams on start" behavior. If you previously set `start_verify: true`, set `init_strategy: failOnError` instead.
+> **Migration note:** Blocky folded "verify upstreams on start" into the init strategy, so the separate `start_verify` option is **deprecated**. It is still accepted — existing configurations keep working unchanged, and `start_verify: true` is automatically mapped to `init_strategy: failOnError`. No action is required; switch to `init_strategy` at your convenience. `start_verify` will be removed in a future major release.
 
 ### Bootstrap DNS
 

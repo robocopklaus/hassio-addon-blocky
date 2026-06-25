@@ -14,9 +14,15 @@ upstreams:
       - {{ . | quote }}
 {{- end }}
 {{- end }}
-{{- if .upstreams.init_strategy }}
+{{- /* start_verify is deprecated: Blocky folded "verify upstreams on start" into the init strategy.
+       Map a legacy start_verify:true onto init.strategy=failOnError so existing configs keep working. */}}
+{{- $initStrategy := .upstreams.init_strategy }}
+{{- if .upstreams.start_verify }}
+{{- $initStrategy = "failOnError" }}
+{{- end }}
+{{- if $initStrategy }}
   init:
-    strategy: {{ .upstreams.init_strategy | quote }}
+    strategy: {{ $initStrategy | quote }}
 {{- end }}
 {{- if .upstreams.strategy }}
   strategy: {{ .upstreams.strategy | quote }}
