@@ -77,7 +77,9 @@ fqdnOnly:
 {{- if or .custom_dns.mapping .custom_dns.rewrite }}
 # Custom DNS
 customDNS:
+{{- if .custom_dns.custom_ttl }}
   customTTL: {{ .custom_dns.custom_ttl | quote }}
+{{- end }}
   filterUnmappedTypes: {{ .custom_dns.filter_unmapped_types }}
 {{- if .custom_dns.rewrite }}
   rewrite:
