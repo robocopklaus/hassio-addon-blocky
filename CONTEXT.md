@@ -21,7 +21,7 @@ The generated `/etc/blocky/config.yml` — the single source of truth and the ac
 _Avoid_: output config, generated YAML (when precision matters)
 
 **Guard**:
-A check in a `cont-init.d` script that inspects the rendered config (or prepares its on-disk dependencies) before Blocky starts, and either aborts or degrades on a problem. Distinct from the template's own conditional gating.
+A check in a `cont-init.d` script that inspects the rendered config (or prepares its on-disk dependencies) before Blocky starts, and either aborts or degrades on a problem. Distinct from the template's own conditional gating. A guard that *text-parses* the rendered config (e.g. the upstreams core guard, the query-log path guard) is **format-coupled** and runs in Standard Mode only — never against a hand-written custom config (see ADR-0004). Format-coupled detection lives in `usr/lib/blocky/guards.sh` as pure functions, single-sourced between the runtime guard and its test.
 _Avoid_: validator, check
 
 ### Testing the translation (see ADR-0003)

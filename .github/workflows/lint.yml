@@ -64,6 +64,16 @@ jobs:
       - name: Render fixtures and assert against goldens
         run: pnpm run check:render
 
+  guard-test:
+    name: Guard Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test config.sh guards against the render goldens
+        run: bash scripts/test-guards.sh
+
   hadolint:
     name: Hadolint
     runs-on: ubuntu-latest
