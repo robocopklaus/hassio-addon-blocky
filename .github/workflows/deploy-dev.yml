@@ -30,7 +30,12 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Sync blocky → blocky-dev
-        run: rsync -a --delete blocky/ blocky-dev/
+        # --checksum: compare file contents, not size+mtime. On a fresh
+        # checkout all files share the same mtime, and same-length edits (e.g.
+        # the Dockerfile BLOCKY_VERSION string: v0.29.0 -> v0.32.1) keep the
+        # same size, so the default size+mtime heuristic skips them and leaves
+        # blocky-dev stale.
+        run: rsync -a --delete --checksum blocky/ blocky-dev/
 
       - name: Patch blocky-dev/config.yaml
         run: |
