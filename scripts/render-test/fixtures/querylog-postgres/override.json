@@ -1,0 +1,9 @@
+{
+  "query_log": {
+    "type": "postgresql",
+    "db_host": "db.local",
+    "db_username": "block user",
+    "db_password": "p@ss w/rd",
+    "db_database": "blocky"
+  }
+}

@@ -8,6 +8,8 @@
   "packageManager": "pnpm@11.8.0",
   "scripts": {
     "check:contracts": "node scripts/check-config-contract.mjs",
+    "check:render": "node scripts/render-test/run.mjs",
+    "render:update": "node scripts/render-test/run.mjs --update",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
   },
@@ -19,6 +21,7 @@
     "@semantic-release/github": "12.0.8",
     "@semantic-release/release-notes-generator": "14.1.1",
     "conventional-changelog-conventionalcommits": "^9.1.0",
-    "semantic-release": "25.0.5"
+    "semantic-release": "25.0.5",
+    "yaml": "^2.9.0"
   }
 }

@@ -1,0 +1,6 @@
+{
+  "caching": {
+    "max_items_count": 2000000,
+    "prefetch_max_items_count": 1500000
+  }
+}

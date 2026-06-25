@@ -25,3 +25,6 @@ secrets.yaml
 # JavaScript/TypeScript deps
 node_modules/
 .pnpm-store/
+
+# Render-test cache (provisioned tempio/blocky binaries)
+scripts/render-test/.bin/

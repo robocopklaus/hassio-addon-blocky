@@ -24,6 +24,20 @@ _Avoid_: output config, generated YAML (when precision matters)
 A check in a `cont-init.d` script that inspects the rendered config (or prepares its on-disk dependencies) before Blocky starts, and either aborts or degrades on a problem. Distinct from the template's own conditional gating.
 _Avoid_: validator, check
 
+### Testing the translation (see ADR-0003)
+
+**Render harness**:
+`scripts/render-test/run.mjs` — runs the real pinned `tempio` + `blocky` binaries to render fixtures and assert the result. Crosses the same seam the add-on does at runtime (`options.json` → Rendered config → `blocky validate`). Additive to the contract checker, which guards three-file parity but never renders.
+_Avoid_: test script, renderer
+
+**Fixture**:
+A test case under `scripts/render-test/fixtures/<name>/`: a tiny `override.json` deep-merged onto the defaults read live from `config.yaml`, optionally an `expect-invalid` marker. Mirrors how Home Assistant composes options (defaults + user overrides).
+_Avoid_: test case, sample, scenario
+
+**Golden**:
+The committed `expected.yml` snapshot of a fixture's Rendered config. The byte-for-byte contract; regenerated only via `--update`, never by CI.
+_Avoid_: snapshot, expected output, baseline
+
 ### Failure policy (see ADR-0002)
 
 **Core feature**:

@@ -1,0 +1,10 @@
+{
+  "https": {
+    "enable": true,
+    "cert_file": "/ssl/fullchain.pem",
+    "key_file": "/ssl/privkey.pem"
+  },
+  "http3": {
+    "enable": true
+  }
+}

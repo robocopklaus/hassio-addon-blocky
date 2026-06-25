@@ -1,0 +1,42 @@
+# Blocky Configuration
+# Generated from Home Assistant add-on options
+# Reference: https://0xerr0r.github.io/blocky/latest/configuration/
+#
+# IMPORTANT: To edit this file directly, enable "Custom Configuration" in the add-on UI.
+# When custom config is disabled, this file is regenerated on every restart.
+
+# Upstream DNS Servers
+upstreams:
+  groups:
+  init:
+    strategy: "blocking"
+  strategy: "parallel_best"
+  timeout: "2s"
+# Bootstrap DNS
+bootstrapDns:
+  - upstream: "1.1.1.1"
+  - upstream: "8.8.8.8"
+# Blocking & Allowlists
+blocking:
+  denylists:
+    "ads":
+      - "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt"
+      - "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+    "tracking":
+      - "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt"
+  clientGroupsBlock:
+    "default":
+      - "ads"
+      - "tracking"
+  blockType: "zeroIp"
+  blockTTL: "6h"
+# Ports & Addresses
+ports:
+  http:
+    - 4000 # Hardcoded since this is the internal Docker port
+
+# Logging
+log:
+  level: "info"
+  timestamp: true
+  privacy: true

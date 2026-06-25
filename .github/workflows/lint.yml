@@ -5,7 +5,11 @@ on:
     branches: [main]
     paths:
       - "blocky/Dockerfile"
+      - "blocky/config.yaml"
       - "blocky/rootfs/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - ".hadolint.yaml"
       - ".shellcheckrc"
       - ".github/workflows/lint.yml"
@@ -27,6 +31,38 @@ jobs:
 
       - name: Check config contracts
         run: node scripts/check-config-contract.mjs
+
+  render-test:
+    name: Render Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.8.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.17.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Cache the provisioned tempio/blocky binaries, keyed on the Dockerfile
+      # (the single version pin). A Renovate bump changes the key and re-downloads.
+      - name: Cache render binaries
+        uses: actions/cache@v4
+        with:
+          path: scripts/render-test/.bin
+          key: render-bin-${{ runner.os }}-${{ hashFiles('blocky/Dockerfile') }}
+
+      - name: Render fixtures and assert against goldens
+        run: pnpm run check:render
 
   hadolint:
     name: Hadolint

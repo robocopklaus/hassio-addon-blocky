@@ -1,0 +1,9 @@
+{
+  "client_lookup": {
+    "upstream": "192.168.178.1",
+    "single_name_order": [
+      "2",
+      "1"
+    ]
+  }
+}

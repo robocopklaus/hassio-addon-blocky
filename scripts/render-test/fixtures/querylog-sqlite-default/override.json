@@ -1,0 +1,5 @@
+{
+  "query_log": {
+    "type": "sqlite"
+  }
+}
