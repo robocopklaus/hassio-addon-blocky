@@ -95,6 +95,15 @@ if bashio::config.true 'https.enable' || bashio::config.true 'http3.enable'; the
     fi
 fi
 
+# client_lookup.single_name_order only has meaning together with an upstream
+# (it orders the rDNS lookup results). The template drops it when no upstream is
+# set (ADR-0002 degrade); warn so the operator knows their setting was ignored.
+# Count the array directly: has_value treats an empty list as "present".
+SINGLE_NAME_ORDER_COUNT=$(jq -r '(.client_lookup.single_name_order // []) | length' /data/options.json 2>/dev/null || echo 0)
+if [ "${SINGLE_NAME_ORDER_COUNT}" -gt 0 ] && ! bashio::config.has_value 'client_lookup.upstream'; then
+    bashio::log.warning "client_lookup.single_name_order is set but client_lookup.upstream is missing; single_name_order is ignored."
+fi
+
 # Prepare on-disk query log storage. CSV/csv-client write daily-rotating files
 # into a target DIRECTORY; sqlite writes a single database FILE whose parent
 # directory must exist. Both must stay under /config/ for persistence.
