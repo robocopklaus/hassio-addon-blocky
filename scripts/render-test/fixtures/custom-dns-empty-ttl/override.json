@@ -1,0 +1,11 @@
+{
+  "custom_dns": {
+    "custom_ttl": "",
+    "mapping": [
+      {
+        "hostname": "nas.local",
+        "ips": "10.0.0.5"
+      }
+    ]
+  }
+}
