@@ -282,7 +282,7 @@ caching:
   maxTime: {{ $caching.max_time | quote }}
 {{- end }}
 {{- if $caching.max_items_count }}
-  maxItemsCount: {{ $caching.max_items_count }}
+  maxItemsCount: {{ $caching.max_items_count | int }}
 {{- end }}
 {{- if $caching.prefetching }}
   prefetching: {{ $caching.prefetching }}
@@ -291,10 +291,10 @@ caching:
   prefetchExpires: {{ $caching.prefetch_expires | quote }}
 {{- end }}
 {{- if $caching.prefetch_threshold }}
-  prefetchThreshold: {{ $caching.prefetch_threshold }}
+  prefetchThreshold: {{ $caching.prefetch_threshold | int }}
 {{- end }}
 {{- if $caching.prefetch_max_items_count }}
-  prefetchMaxItemsCount: {{ $caching.prefetch_max_items_count }}
+  prefetchMaxItemsCount: {{ $caching.prefetch_max_items_count | int }}
 {{- end }}
 {{- if $caching.cache_time_negative }}
   cacheTimeNegative: {{ $caching.cache_time_negative | quote }}
@@ -318,9 +318,9 @@ redis:
 {{- if $redis.password }}
   password: {{ $redis.password | quote }}
 {{- end }}
-  database: {{ $redis.database }}
+  database: {{ $redis.database | int }}
   required: {{ $redis.required }}
-  connectionAttempts: {{ $redis.connection_attempts }}
+  connectionAttempts: {{ $redis.connection_attempts | int }}
   connectionCooldown: {{ $redis.connection_cooldown | quote }}
 {{- end }}
 
@@ -345,7 +345,9 @@ queryLog:
 {{- end }}
 {{- if or (eq $queryLog.type "mysql") (eq $queryLog.type "postgresql") (eq $queryLog.type "timescale") }}
 {{- if and $queryLog.db_host $queryLog.db_database }}
-{{- $port := $queryLog.db_port }}
+{{- /* tempio decodes options.json numbers as float64; coerce to int so the
+       comparison and the rendered DSN port are integers, not "5432.0". */}}
+{{- $port := $queryLog.db_port | int }}
 {{- if eq $port 0 }}
 {{- if eq $queryLog.type "mysql" }}
 {{- $port = 3306 }}
@@ -360,9 +362,9 @@ queryLog:
 {{- end }}
 {{- end }}
 {{- end }}
-  logRetentionDays: {{ $queryLog.log_retention_days }}
+  logRetentionDays: {{ $queryLog.log_retention_days | int }}
 {{- if $queryLog.creation_attempts }}
-  creationAttempts: {{ $queryLog.creation_attempts }}
+  creationAttempts: {{ $queryLog.creation_attempts | int }}
 {{- end }}
 {{- if $queryLog.creation_cooldown }}
   creationCooldown: {{ $queryLog.creation_cooldown | quote }}
