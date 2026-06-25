@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.0.0] - 2026-06-25
+
+### Changed
+
+- Blocky upgraded from v0.30.0 to v0.32.1
+
+### Added
+
+- DNS rebinding protection: `rebinding_protection.enable` and `rebinding_protection.allowed_domains` drop upstream answers that resolve public domains to private IP ranges (conflicts with Conditional DNS for local domains — allowlist them or keep it disabled)
+- SQLite query log: `query_log.type: sqlite` writes to a single database file, defaulting to `/config/querylog.db` (no external database required)
+- On-disk block-list download cache: `blocking.download_cache` persists downloaded lists under `/data/cache/lists` for faster restarts and resilience during source outages
+
+### Removed
+
+- **BREAKING:** the `upstreams.start_verify` option has been removed. Blocky deprecated the underlying `startVerifyUpstream` setting and folded it into the init strategy. Set `init_strategy: failOnError` to keep the "verify upstreams on start, fail if none reachable" behavior. See the migration note in DOCS.md.
+
+### Added (Upstream Blocky)
+
+- DNS rebinding protection
+- SQLite query-log target
+- Opt-in on-disk list download cache with HTTP conditional revalidation
+- Per-client DNS rate limiting
+- In-memory statistics subsystem with `/api/stats` REST endpoint
+- Sharded result cache to remove the single-lock read ceiling
+
+### Fixed (Upstream Blocky)
+
+- DNSSEC validation bypass & cache-scope pollution (GHSA-x845-2f78-7v36)
+- DNSSEC: no longer caches transient Indeterminate results; only validates public-upstream answers
+- Recursive RLock deadlock in blocking group resolution
+- Browser CORS preflight handling for custom headers and Private Network Access
+
 ## [4.2.0] - 2026-05-30
 
 ### Changed

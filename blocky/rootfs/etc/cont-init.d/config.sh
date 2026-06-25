@@ -83,39 +83,75 @@ if ! chmod 600 "${ADDON_CONFIG_PATH}/config.yml" "${CONFIG_PATH}/config.yml"; th
     exit 1
 fi
 
-# Create query log directory if CSV logging is enabled
-if bashio::config.has_value 'query_log.target'; then
-    QUERY_LOG_TARGET=$(bashio::config 'query_log.target')
-    QUERY_LOG_TYPE=$(bashio::config 'query_log.type')
+# Prepare on-disk query log storage. CSV/csv-client write daily-rotating files
+# into a target DIRECTORY; sqlite writes a single database FILE whose parent
+# directory must exist. Both must stay under /config/ for persistence.
+QUERY_LOG_TYPE=$(bashio::config 'query_log.type')
+QUERY_LOG_PATH=""
 
-    if [[ "${QUERY_LOG_TYPE}" == "csv" ]] || [[ "${QUERY_LOG_TYPE}" == "csv-client" ]]; then
-        # Validate target path to prevent directory traversal
-        if [[ "${QUERY_LOG_TARGET}" == *".."* ]]; then
-            bashio::log.fatal "Query log target contains '..': ${QUERY_LOG_TARGET}"
-            bashio::log.fatal "Path traversal is not allowed for CSV query logs."
-            exit 1
-        elif [[ "${QUERY_LOG_TARGET}" != /config/* ]]; then
-            bashio::log.fatal "Query log target must be under /config/: ${QUERY_LOG_TARGET}"
-            exit 1
-        else
-            bashio::log.info "Creating query log directory: ${QUERY_LOG_TARGET}"
-            if mkdir -p "${QUERY_LOG_TARGET}"; then
-                # Verify canonical path stays within /config/ (catches symlink attacks)
-                CANONICAL_PATH=$(realpath "${QUERY_LOG_TARGET}")
-                if [[ "${CANONICAL_PATH}" != /config && "${CANONICAL_PATH}" != /config/* ]]; then
-                    bashio::log.fatal "Query log directory resolves outside /config/: ${CANONICAL_PATH}"
-                    exit 1
-                fi
-            else
-                bashio::log.fatal "Failed to create query log directory: ${QUERY_LOG_TARGET}"
-                exit 1
-            fi
-
-            if [ ! -w "${QUERY_LOG_TARGET}" ]; then
-                bashio::log.fatal "Query log directory is not writable: ${QUERY_LOG_TARGET}"
-                exit 1
-            fi
+case "${QUERY_LOG_TYPE}" in
+    csv | csv-client)
+        # target is the directory that holds the daily-rotating files
+        if bashio::config.has_value 'query_log.target'; then
+            QUERY_LOG_PATH=$(bashio::config 'query_log.target')
         fi
+        ;;
+    sqlite)
+        # target is the database file; default must match the blocky.gtpl fallback
+        if bashio::config.has_value 'query_log.target'; then
+            QUERY_LOG_PATH=$(bashio::config 'query_log.target')
+        else
+            QUERY_LOG_PATH="/config/querylog.db"
+        fi
+        ;;
+esac
+
+if [ -n "${QUERY_LOG_PATH}" ]; then
+    # Validate the full target path (the value Blocky writes to) to prevent
+    # directory traversal and keep query logs under /config/.
+    if [[ "${QUERY_LOG_PATH}" == *".."* ]]; then
+        bashio::log.fatal "Query log target contains '..': ${QUERY_LOG_PATH}"
+        bashio::log.fatal "Path traversal is not allowed for query logs."
+        exit 1
+    elif [[ "${QUERY_LOG_PATH}" != /config && "${QUERY_LOG_PATH}" != /config/* ]]; then
+        bashio::log.fatal "Query log target must be under /config/: ${QUERY_LOG_PATH}"
+        exit 1
+    fi
+
+    # sqlite target is a file -> create its parent dir; csv target is the dir itself
+    if [[ "${QUERY_LOG_TYPE}" == "sqlite" ]]; then
+        QUERY_LOG_DIR=$(dirname "${QUERY_LOG_PATH}")
+    else
+        QUERY_LOG_DIR="${QUERY_LOG_PATH}"
+    fi
+
+    bashio::log.info "Creating query log directory: ${QUERY_LOG_DIR}"
+    if ! mkdir -p "${QUERY_LOG_DIR}"; then
+        bashio::log.fatal "Failed to create query log directory: ${QUERY_LOG_DIR}"
+        exit 1
+    fi
+
+    # Verify canonical path stays within /config/ (catches symlink attacks)
+    CANONICAL_PATH=$(realpath "${QUERY_LOG_DIR}")
+    if [[ "${CANONICAL_PATH}" != /config && "${CANONICAL_PATH}" != /config/* ]]; then
+        bashio::log.fatal "Query log directory resolves outside /config/: ${CANONICAL_PATH}"
+        exit 1
+    fi
+
+    if [ ! -w "${QUERY_LOG_DIR}" ]; then
+        bashio::log.fatal "Query log directory is not writable: ${QUERY_LOG_DIR}"
+        exit 1
+    fi
+fi
+
+# Create the on-disk block list download cache directory when enabled.
+# Internal, regenerable state -> lives under /data (add-on-private), see ADR-0001.
+if bashio::config.true 'blocking.download_cache'; then
+    readonly LIST_CACHE_DIR="/data/cache/lists"
+    bashio::log.info "Creating block list download cache directory: ${LIST_CACHE_DIR}"
+    if ! mkdir -p "${LIST_CACHE_DIR}"; then
+        bashio::log.fatal "Failed to create list download cache directory: ${LIST_CACHE_DIR}"
+        exit 1
     fi
 fi
 

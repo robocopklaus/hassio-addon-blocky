@@ -34,9 +34,6 @@ upstreams:
     keepAlivePeriod: {{ $quic.keep_alive_period | quote }}
 {{- end }}
 {{- end }}
-{{- if .upstreams.start_verify }}
-  startVerifyUpstream: true
-{{- end }}
 {{- if .upstreams.user_agent }}
   userAgent: {{ .upstreams.user_agent | quote }}
 {{- end }}
@@ -130,6 +127,18 @@ dns64:
 {{- if .dns64.exclusion_set }}
   exclusionSet:
 {{- range .dns64.exclusion_set }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if .rebinding_protection.enable }}
+# DNS Rebinding Protection
+rebindingProtection:
+  enable: true
+{{- if .rebinding_protection.allowed_domains }}
+  allowedDomains:
+{{- range .rebinding_protection.allowed_domains }}
     - {{ . | quote }}
 {{- end }}
 {{- end }}
@@ -245,6 +254,11 @@ blocking:
 {{- if $blocking.block_ttl }}
   blockTTL: {{ $blocking.block_ttl | quote }}
 {{- end }}
+{{- if $blocking.download_cache }}
+  loading:
+    downloads:
+      cachePath: "/data/cache/lists"
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -319,6 +333,9 @@ queryLog:
 {{- if $queryLog.target }}
   target: {{ $queryLog.target | quote }}
 {{- end }}
+{{- end }}
+{{- if eq $queryLog.type "sqlite" }}
+  target: {{ if $queryLog.target }}{{ $queryLog.target | quote }}{{ else }}"/config/querylog.db"{{ end }}
 {{- end }}
 {{- if or (eq $queryLog.type "mysql") (eq $queryLog.type "postgresql") (eq $queryLog.type "timescale") }}
 {{- if and $queryLog.db_host $queryLog.db_database }}
