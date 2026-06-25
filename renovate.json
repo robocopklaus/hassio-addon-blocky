@@ -41,7 +41,36 @@
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
-      "description": "Blocky updates trigger version bump",
+      "description": "Auto-merge patch and minor updates via GitHub native auto-merge (waits for required checks). Later package-specific rules opt specific deps back out.",
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Group Home Assistant base images and keep them manual (base image changes affect the runtime)",
+      "matchDatasources": [
+        "docker"
+      ],
+      "groupName": "Home Assistant base images",
+      "matchPackageNames": [
+        "/^ghcr.io/home-assistant/.*-base$/"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Group semantic-release packages",
+      "groupName": "semantic-release packages",
+      "matchPackageNames": [
+        "/^@semantic-release//",
+        "/^semantic-release$/"
+      ]
+    },
+    {
+      "description": "Blocky updates trigger a version bump and require manual review",
       "matchDatasources": [
         "github-releases"
       ],
@@ -52,7 +81,7 @@
       "automerge": false
     },
     {
-      "description": "Tempio updates trigger patch bump",
+      "description": "Tempio updates trigger a patch bump and require manual review",
       "matchDatasources": [
         "github-releases"
       ],
@@ -61,32 +90,6 @@
       ],
       "commitMessagePrefix": "fix(deps):",
       "automerge": false
-    },
-    {
-      "description": "Auto-merge patch updates only",
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "automerge": true,
-      "automergeType": "branch"
-    },
-    {
-      "description": "Group Home Assistant base images",
-      "matchDatasources": [
-        "docker"
-      ],
-      "groupName": "Home Assistant base images",
-      "matchPackageNames": [
-        "/^ghcr.io/home-assistant/.*-base$/"
-      ]
-    },
-    {
-      "description": "Group semantic-release packages",
-      "groupName": "semantic-release packages",
-      "matchPackageNames": [
-        "/^@semantic-release//",
-        "/^semantic-release$/"
-      ]
     }
   ]
 }
