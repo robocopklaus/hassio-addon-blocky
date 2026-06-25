@@ -1,0 +1,9 @@
+{
+  "query_log": {
+    "type": "mysql",
+    "db_host": "db.local",
+    "db_username": "user",
+    "db_password": "p@ss",
+    "db_database": "blocky"
+  }
+}
