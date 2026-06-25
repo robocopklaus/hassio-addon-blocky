@@ -20,6 +20,7 @@ test/
 # Local config
 config.local.yaml
 secrets.yaml
+.hass_config
 
 # JavaScript/TypeScript deps
 node_modules/
