@@ -27,6 +27,8 @@ Configure external DNS resolvers that Blocky queries after checking blocks and c
 - **Verify Upstreams on Start** (`start_verify`): **deprecated** — kept for backward compatibility. When enabled it is mapped to `init_strategy: failOnError`. Prefer setting Init Strategy directly.
 - **QUIC Settings**: optional DoQ idle timeout and keep-alive tuning for `quic:` upstreams.
 
+A `default` group with at least one resolver is required. If you clear it, the add-on aborts at startup with a clear error instead of running unable to resolve DNS.
+
 If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup stalls, or `init_strategy: failOnError` when you want startup to fail unless an upstream is reachable.
 
 > **Migration note:** Blocky folded "verify upstreams on start" into the init strategy, so the separate `start_verify` option is **deprecated**. It is still accepted — existing configurations keep working unchanged, and `start_verify: true` is automatically mapped to `init_strategy: failOnError`. No action is required; switch to `init_strategy` at your convenience. `start_verify` will be removed in a future major release.
@@ -205,7 +207,7 @@ The add-on can start Blocky's HTTPS listener on internal port `443`. This can se
 
 Map the add-on's `443/tcp` port for HTTPS/DoH clients and `443/udp` for DoH3 clients. Both are disabled by default in Home Assistant's add-on port settings.
 
-If no certificate is configured, Blocky generates a self-signed certificate. For real clients, mount trusted certificate files under `/ssl` and configure `https.cert_file` and `https.key_file`, for example `/ssl/fullchain.pem` and `/ssl/privkey.pem`.
+A certificate is **required**: configure both `https.cert_file` and `https.key_file` (for example `/ssl/fullchain.pem` and `/ssl/privkey.pem`, mounting trusted certificate files under `/ssl`). If either is missing, the add-on skips the HTTPS/DoH/DoH3 listener entirely and logs a warning rather than starting Blocky with no certificate — DNS resolution is unaffected.
 
 ### Client Lookup
 
@@ -463,7 +465,9 @@ Ingress is not enabled by default because Blocky provides an API rather than a d
 
 ### Standard mode (UI-driven)
 
-Schema migrations are handled by template/config updates shipped with the add-on. Upgrading the add-on updates generated config on restart.
+Schema migrations are handled by template/config updates shipped with the add-on. Upgrading the add-on regenerates the config on restart, so no manual action is required.
+
+Home Assistant does not auto-migrate add-on options: on an upgrade it keeps your saved value for every option still in the schema and drops the rest. The add-on works with this by **retaining deprecated options** in the schema and translating them to their current equivalent on every render (for example, `start_verify: true` is mapped to `init_strategy: failOnError`). Your existing settings therefore keep working across upgrades without edits. When an option is finally removed in a future major release, it is called out in the changelog's **Deprecated**/**Removed** sections — review those before a major upgrade.
 
 ### Custom config mode
 
