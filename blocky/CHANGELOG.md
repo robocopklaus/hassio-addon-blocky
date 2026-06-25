@@ -19,13 +19,21 @@ Bundles all changes since 4.1.1 (the previously documented 4.2.0 was never relea
 - On-disk block-list download cache: `blocking.download_cache` persists downloaded lists under `/data/cache/lists` for faster restarts and resilience during source outages
 - DNS-over-QUIC (DoQ) upstreams: `quic:` / `quic://` resolvers plus optional `upstreams.quic.max_idle_timeout` and `upstreams.quic.keep_alive_period` tuning
 - Schedule-based blocking: `blocking.schedules` and `blocking.list_schedules` to activate allowlist or denylist groups only on selected weekdays or time windows
-- HTTPS/DoH listener on internal port 443 (`https.enable`, optional `https.cert_file` / `https.key_file`; self-signed certificate generated when unset)
+- HTTPS/DoH listener on internal port 443 (`https.enable`). Requires both `https.cert_file` and `https.key_file`; when either is missing the listener is skipped and a warning is logged rather than starting Blocky with no certificate
 - DNS-over-HTTPS over HTTP/3 (DoH3) via `http3.enable` on internal port 443/udp
 - Optional add-on ports `443/tcp` and `443/udp` (disabled by default in Home Assistant's port settings)
 
 ### Deprecated
 
 - `upstreams.start_verify` is deprecated. Blocky folded the underlying `startVerifyUpstream` setting into the init strategy. The option is **still accepted** so existing configurations keep working unchanged, and `start_verify: true` is automatically mapped to `init_strategy: failOnError`. Switch to `init_strategy` at your convenience; `start_verify` will be removed in a future major release.
+
+### Fixed
+
+- The add-on now fails fast with a clear error when the rendered config has no default upstream group with a resolver — previously it would start and then silently fail to resolve DNS (Standard Mode only; custom configurations are left to Blocky's own validation)
+- Enabling HTTPS/DoH (`https.enable`) or DoH3 (`http3.enable`) without a certificate no longer opens port 443 with no cert and crashes Blocky — the listener is now skipped and a warning is logged when TLS is requested but no `cert_file`/`key_file` is set (DNS resolution is unaffected)
+- The query-log path guard now reads the effective `target:` straight from the rendered config instead of a separately-defined default, so it can no longer validate a different path than the one Blocky actually writes to
+- `custom_dns.custom_ttl` is now emitted only when set — clearing the field previously produced an empty `customTTL` that Blocky rejects
+- `client_lookup.single_name_order` now logs a warning when it is ignored (it only orders reverse-DNS lookups, so it has no effect unless a client-lookup upstream is configured)
 
 ### Added (Upstream Blocky)
 
