@@ -1,9 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = path.join(ROOT_DIR, "blocky", "config.yaml");
+const DEPRECATIONS_PATH = path.join(ROOT_DIR, "scripts", "deprecations.json");
+const FIXTURES_DIR = path.join(ROOT_DIR, "scripts", "render-test", "fixtures");
 const TEMPLATE_PATH = path.join(
   ROOT_DIR,
   "blocky",
@@ -120,6 +122,73 @@ function extractSectionScalarValues(content, sectionName) {
   }
 
   return values;
+}
+
+// Like extractSectionScalarValues, but records the dotted path of *every* key
+// regardless of whether it carries a scalar value. Used to test key presence
+// (e.g. a deprecated key with a bare-empty default, or a container key) without
+// the value-only filtering that would otherwise report such keys as missing.
+function extractSectionKeyPaths(content, sectionName) {
+  const lines = content.split(/\r?\n/);
+  const paths = new Set();
+  const stack = [];
+  let inSection = false;
+
+  for (const line of lines) {
+    if (!inSection) {
+      if (isSectionRoot(line, sectionName) && !line.startsWith(" ")) {
+        inSection = true;
+      }
+      continue;
+    }
+
+    if (line.trim() === "" || line.trim().startsWith("#")) {
+      continue;
+    }
+
+    if (!line.startsWith(" ")) {
+      break;
+    }
+
+    const match = line.match(/^(\s*)([A-Za-z0-9_]+):\s*(.*)$/);
+    if (!match) {
+      continue;
+    }
+
+    const indent = match[1].length;
+    const relativeIndent = indent - 2;
+
+    if (relativeIndent < 0 || relativeIndent % 2 !== 0) {
+      continue;
+    }
+
+    const level = relativeIndent / 2;
+    stack.length = level;
+    stack[level] = match[2];
+    paths.add(stack.join("."));
+  }
+
+  return paths;
+}
+
+// True when the dotted path resolves to a present key in a parsed override.json.
+// Proves a deprecation fixture actually exercises the key (not just that the
+// fixture directory exists). Stops at the leaf's parent so a leaf with any value
+// — including false/null — still counts as present.
+function overrideSetsPath(override, keyPath) {
+  const segments = keyPath.split(".");
+  let node = override;
+  for (const segment of segments) {
+    if (!isPlainObject(node) || !(segment in node)) {
+      return false;
+    }
+    node = node[segment];
+  }
+  return true;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function parseDirectiveBodies(templateContent) {
@@ -245,6 +314,102 @@ for (const [pathKey, schemaType] of schemaScalarValues) {
         ", "
       )}]`
     );
+  }
+}
+
+// Deprecation retention (see ADR-0005): Home Assistant silently drops persisted
+// values for keys no longer in the schema, so a deprecated option must stay in
+// both the options and schema blocks — and keep a live fixture proving the
+// template still translates it — until we deliberately break it for upgraders.
+// The registry lives outside the schema on purpose: a marker on the schema line
+// would vanish together with the line it is meant to protect.
+//
+// Presence is tested against key *paths* (not scalar values), so a deprecated key
+// with a bare-empty default or a container key still counts as present. The check
+// does not assert *types*, only that the declared path still exists.
+const optionKeyPaths = extractSectionKeyPaths(configYaml, "options");
+const schemaKeyPaths = extractSectionKeyPaths(configYaml, "schema");
+
+if (existsSync(DEPRECATIONS_PATH)) {
+  let deprecations;
+  try {
+    deprecations = JSON.parse(readFileSync(DEPRECATIONS_PATH, "utf8"));
+  } catch (err) {
+    errors.push(`Could not parse ${path.relative(ROOT_DIR, DEPRECATIONS_PATH)}: ${err.message}`);
+    deprecations = [];
+  }
+
+  if (!Array.isArray(deprecations)) {
+    errors.push("deprecations.json must be a JSON array of deprecation entries");
+    deprecations = [];
+  }
+
+  const seenPaths = new Set();
+
+  for (const entry of deprecations) {
+    const { path: keyPath, replacedBy, fixture } = entry ?? {};
+
+    if (typeof keyPath !== "string" || keyPath === "") {
+      errors.push(`Deprecation entry is missing a 'path': ${JSON.stringify(entry)}`);
+      continue;
+    }
+
+    if (seenPaths.has(keyPath)) {
+      errors.push(`Duplicate deprecation entry for path '${keyPath}' in deprecations.json`);
+      continue;
+    }
+    seenPaths.add(keyPath);
+
+    if (!optionKeyPaths.has(keyPath)) {
+      errors.push(
+        `Deprecated key '${keyPath}' is no longer a default in the options block of config.yaml — ` +
+          `removing it silently deletes this setting for existing users (see ADR-0005)`
+      );
+    }
+
+    if (!schemaKeyPaths.has(keyPath)) {
+      errors.push(
+        `Deprecated key '${keyPath}' is no longer in the schema block of config.yaml — ` +
+          `Home Assistant will silently drop persisted values for it on upgrade (see ADR-0005)`
+      );
+    }
+
+    // replacedBy is optional (a removed-with-no-replacement deprecation leaves it
+    // empty); when set, the migration target must still exist in the schema.
+    if (typeof replacedBy === "string" && replacedBy !== "" && !schemaKeyPaths.has(replacedBy)) {
+      errors.push(
+        `Deprecation '${keyPath}' names replacedBy '${replacedBy}', which is not in the schema block of config.yaml`
+      );
+    }
+
+    if (typeof fixture !== "string" || fixture === "") {
+      errors.push(`Deprecation '${keyPath}' must name a 'fixture' proving its translation`);
+      continue;
+    }
+
+    const overridePath = path.join(FIXTURES_DIR, fixture, "override.json");
+    if (!existsSync(path.join(FIXTURES_DIR, fixture))) {
+      errors.push(
+        `Deprecation '${keyPath}' references render-test fixture '${fixture}', which does not exist`
+      );
+    } else if (!existsSync(overridePath)) {
+      errors.push(
+        `Deprecation '${keyPath}' fixture '${fixture}' has no override.json to exercise the key`
+      );
+    } else {
+      let override;
+      try {
+        override = JSON.parse(readFileSync(overridePath, "utf8"));
+      } catch (err) {
+        errors.push(`Could not parse ${path.relative(ROOT_DIR, overridePath)}: ${err.message}`);
+      }
+      if (override !== undefined && !overrideSetsPath(override, keyPath)) {
+        errors.push(
+          `Deprecation '${keyPath}' fixture '${fixture}' does not set '${keyPath}' in override.json, ` +
+            `so it never exercises the deprecated translation (see ADR-0005)`
+        );
+      }
+    }
   }
 }
 
