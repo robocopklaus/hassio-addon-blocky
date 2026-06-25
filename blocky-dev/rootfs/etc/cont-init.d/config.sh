@@ -85,28 +85,32 @@ if ! chmod 600 "${ADDON_CONFIG_PATH}/config.yml" "${CONFIG_PATH}/config.yml"; th
     exit 1
 fi
 
+# HTTPS/DoH is a side feature (ADR-0002): when enabled without a certificate the
+# template drops it rather than open :443 with no cert (which would crash Blocky).
+# Warn so the degrade is not silent. DNS resolution is unaffected.
+if bashio::config.true 'https.enable' || bashio::config.true 'http3.enable'; then
+    if ! bashio::config.has_value 'https.cert_file' || ! bashio::config.has_value 'https.key_file'; then
+        bashio::log.warning "HTTPS/DoH/HTTP3 requested but cert_file and key_file are not both set."
+        bashio::log.warning "TLS is disabled and port 443 will not be opened. DNS resolution continues normally."
+    fi
+fi
+
 # Prepare on-disk query log storage. CSV/csv-client write daily-rotating files
 # into a target DIRECTORY; sqlite writes a single database FILE whose parent
 # directory must exist. Both must stay under /config/ for persistence.
+#
+# Read the effective target from the RENDERED config (the single source of
+# truth, see ADR-0002). We never re-derive the default path here: that would
+# duplicate the template's fallback and silently drift from the path Blocky
+# actually writes to. The coupling is narrow (one machine-generated line) and
+# fails loudly (empty path slips through to the containment check below).
 QUERY_LOG_TYPE=$(bashio::config 'query_log.type')
 QUERY_LOG_PATH=""
 
 case "${QUERY_LOG_TYPE}" in
-    csv | csv-client)
-        # target is the directory that holds the daily-rotating files
-        if bashio::config.has_value 'query_log.target'; then
-            QUERY_LOG_PATH=$(bashio::config 'query_log.target')
-        else
-            QUERY_LOG_PATH="/config/query_logs"
-        fi
-        ;;
-    sqlite)
-        # target is the database file; default must match the blocky.gtpl fallback
-        if bashio::config.has_value 'query_log.target'; then
-            QUERY_LOG_PATH=$(bashio::config 'query_log.target')
-        else
-            QUERY_LOG_PATH="/config/querylog.db"
-        fi
+    csv | csv-client | sqlite)
+        QUERY_LOG_PATH=$(sed -n 's/^[[:space:]]*target:[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' \
+            "${CONFIG_PATH}/config.yml" | head -n1)
         ;;
 esac
 

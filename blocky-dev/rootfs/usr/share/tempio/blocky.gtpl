@@ -376,8 +376,12 @@ queryLog:
 {{- end }}
 {{- end }}
 
-{{- $httpsEnabled := or .https.enable .http3.enable }}
-{{- if and $httpsEnabled .https.cert_file .https.key_file }}
+{{- $httpsRequested := or .https.enable .http3.enable }}
+{{- /* TLS needs both cert and key. Without them we drop HTTPS/DoH entirely
+       (a side feature, see ADR-0002) rather than open :443 with no certificate,
+       which would make Blocky fail at runtime. config.sh warns when this happens. */}}
+{{- $tlsReady := and $httpsRequested .https.cert_file .https.key_file }}
+{{- if $tlsReady }}
 # TLS Certificate
 certFile: {{ .https.cert_file | quote }}
 keyFile: {{ .https.key_file | quote }}
@@ -387,12 +391,12 @@ keyFile: {{ .https.key_file | quote }}
 ports:
   http:
     - 4000 # Hardcoded since this is the internal Docker port
-{{- if $httpsEnabled }}
+{{- if $tlsReady }}
   https:
     - 443 # Hardcoded since this is the internal Docker HTTPS/DoH port
 {{- end }}
 
-{{- if .http3.enable }}
+{{- if and .http3.enable $tlsReady }}
 # DNS-over-HTTPS over HTTP/3
 http3:
   enable: true
