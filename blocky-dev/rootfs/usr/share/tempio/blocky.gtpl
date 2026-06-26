@@ -1,3 +1,14 @@
+{{- /* yamlField: escape a value for safe interpolation inside a double-quoted
+       YAML scalar (backslash first, then double-quote). The one home for the
+       \-and-" escape rule, invoked wherever a user-supplied string lands in a
+       quoted field — conditional mapping resolvers and the mysql/postgres DSN
+       targets. {{template}} writes inline and cannot be piped, so an escape that
+       composes with another transform (postgres urlquery) stays at its call
+       site; this helper owns only the shared YAML-quote step. ADR-0003: a
+       quote/backslash render-test fixture pins it. */ -}}
+{{- define "yamlField" -}}
+{{ . | replace `\` `\\` | replace `"` `\"` }}
+{{- end -}}
 # Blocky Configuration
 # Generated from Home Assistant add-on options
 # Reference: https://0xerr0r.github.io/blocky/latest/configuration/
@@ -111,7 +122,7 @@ conditional:
 {{- if .conditional.mapping }}
   mapping:
 {{- range .conditional.mapping }}
-    {{ .domain | quote }}: "{{ range $index, $resolver := .resolvers }}{{if $index}},{{end}}{{ $resolver | replace `\` `\\` | replace `"` `\"` }}{{end}}"
+    {{ .domain | quote }}: "{{ range $index, $resolver := .resolvers }}{{if $index}},{{end}}{{ template "yamlField" $resolver }}{{end}}"
 {{- end }}
 {{- end }}
 {{- if .conditional.fallback_upstream }}
@@ -360,9 +371,9 @@ queryLog:
 {{- end }}
 {{- end }}
 {{- if eq $queryLog.type "mysql" }}
-  target: "{{ if $queryLog.db_username }}{{ $queryLog.db_username | replace `\` `\\` | replace `"` `\"` }}{{ if $queryLog.db_password }}:{{ $queryLog.db_password | replace `\` `\\` | replace `"` `\"` }}{{ end }}@{{ end }}tcp({{ $queryLog.db_host | replace `\` `\\` | replace `"` `\"` }}:{{ $port }})/{{ $queryLog.db_database | replace `\` `\\` | replace `"` `\"` }}?charset=utf8mb4&parseTime=True"
+  target: "{{ if $queryLog.db_username }}{{ template "yamlField" $queryLog.db_username }}{{ if $queryLog.db_password }}:{{ template "yamlField" $queryLog.db_password }}{{ end }}@{{ end }}tcp({{ template "yamlField" $queryLog.db_host }}:{{ $port }})/{{ template "yamlField" $queryLog.db_database }}?charset=utf8mb4&parseTime=True"
 {{- else }}
-  target: "postgres://{{ if $queryLog.db_username }}{{ urlquery $queryLog.db_username | replace "+" "%20" }}{{ if $queryLog.db_password }}:{{ urlquery $queryLog.db_password | replace "+" "%20" }}{{ end }}@{{ end }}{{ $queryLog.db_host | replace `\` `\\` | replace `"` `\"` }}:{{ $port }}/{{ $queryLog.db_database | replace `\` `\\` | replace `"` `\"` }}"
+  target: "postgres://{{ if $queryLog.db_username }}{{ urlquery $queryLog.db_username | replace "+" "%20" }}{{ if $queryLog.db_password }}:{{ urlquery $queryLog.db_password | replace "+" "%20" }}{{ end }}@{{ end }}{{ template "yamlField" $queryLog.db_host }}:{{ $port }}/{{ template "yamlField" $queryLog.db_database }}"
 {{- end }}
 {{- end }}
 {{- end }}

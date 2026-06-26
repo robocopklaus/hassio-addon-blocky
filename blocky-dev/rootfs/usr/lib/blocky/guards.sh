@@ -88,3 +88,23 @@ query_log_target_is_safe() {
         *) return 1 ;;
     esac
 }
+
+# OUTCOME half of the HTTPS/DoH degrade-warn guard (ADR-0007). HTTPS is a side
+# feature (ADR-0002): when enabled without a cert+key the template DROPS it and
+# emits no top-level "certFile:" rather than open :443 with no certificate.
+# Succeeds (0) when TLS survived into the rendered config, fails (1) when it was
+# dropped. config.sh pairs this with the operator's INTENT (https.enable from
+# options) — the intent cannot be recovered from a config the feature was just
+# dropped from, so it is NOT re-derived here; this only observes what rendered.
+https_cert_rendered() {
+    grep -qE '^certFile:' "$1"
+}
+
+# OUTCOME half of the single_name_order degrade-warn guard (ADR-0007).
+# client_lookup.single_name_order only survives into the rendered config when an
+# upstream is also set (the template drops it otherwise, an ADR-0002 degrade).
+# Succeeds (0) when the rendered clientLookup carries "singleNameOrder:", fails
+# (1) when it was dropped. Paired with options intent in config.sh.
+single_name_order_rendered() {
+    grep -qE '^  singleNameOrder:' "$1"
+}
