@@ -16,6 +16,8 @@ upstreams:
     strategy: "blocking"
   strategy: "parallel_best"
   timeout: "2s"
+# Outgoing IP Version
+connectIPVersion: "dual"
 # Bootstrap DNS
 bootstrapDns:
   - upstream: "1.1.1.1"
