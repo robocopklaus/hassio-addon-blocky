@@ -123,6 +123,30 @@ for name in querylog-mysql querylog-postgres; do
     fi
 done
 
+# ---- https_cert_rendered / single_name_order_rendered (ADR-0007) ------------
+# These read the OUTCOME half of a degrade-warn guard: did the side feature
+# survive into the rendered config? config.sh pairs each with the operator's
+# INTENT read from options.json (which a dropped feature cannot be recovered
+# from). The four fixtures pin both the survived and the dropped branch.
+assert_rendered() { # <fn> <fixture> <want: yes|no>
+    local fn="$1" fixture="$2" want="$3" got
+    local golden="${FIXTURES}/${fixture}/expected.yml"
+    if [ ! -f "${golden}" ]; then
+        bad "${fixture}: golden missing"
+        return
+    fi
+    if "${fn}" "${golden}"; then got=yes; else got=no; fi
+    if [ "${got}" = "${want}" ]; then
+        pass "${fixture}: ${fn} -> ${got}"
+    else
+        bad "${fixture}: ${fn} -> ${got}, want ${want}"
+    fi
+}
+assert_rendered https_cert_rendered tls-ready yes
+assert_rendered https_cert_rendered tls-no-cert no
+assert_rendered single_name_order_rendered single-name-order-with-upstream yes
+assert_rendered single_name_order_rendered single-name-order-no-upstream no
+
 # Synthetic safety cases not represented by a golden.
 for safe in "/config" "/config/query_logs" "/config/querylog.db"; do
     if query_log_target_is_safe "${safe}"; then

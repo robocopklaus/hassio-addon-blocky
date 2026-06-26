@@ -151,25 +151,31 @@ if ! bashio::config.true 'custom_config'; then
             exit 1
         fi
     fi
-fi
 
-# HTTPS/DoH is a side feature (ADR-0002): when enabled without a certificate the
-# template drops it rather than open :443 with no cert (which would crash Blocky).
-# Warn so the degrade is not silent. DNS resolution is unaffected.
-if bashio::config.true 'https.enable' || bashio::config.true 'http3.enable'; then
-    if ! bashio::config.has_value 'https.cert_file' || ! bashio::config.has_value 'https.key_file'; then
-        bashio::log.warning "HTTPS/DoH/HTTP3 requested but cert_file and key_file are not both set."
-        bashio::log.warning "TLS is disabled and port 443 will not be opened. DNS resolution continues normally."
+    # HTTPS/DoH is a side feature (ADR-0002): when enabled without a cert the
+    # template DROPS it rather than open :443 with no certificate (which would
+    # crash Blocky). Warn so the degrade is not silent. Per ADR-0007 the INTENT
+    # (did the operator ask for TLS?) is read from options — it cannot be
+    # recovered from a config the feature was just dropped from — and the OUTCOME
+    # (did TLS survive?) is OBSERVED in the rendered config via guards.sh, never
+    # re-derived from the template's drop condition. Format-coupled, so Standard
+    # Mode only (ADR-0004); guards.sh is already sourced above.
+    if bashio::config.true 'https.enable' || bashio::config.true 'http3.enable'; then
+        if ! https_cert_rendered "${CONFIG_PATH}/config.yml"; then
+            bashio::log.warning "HTTPS/DoH/HTTP3 requested but cert_file and key_file are not both set."
+            bashio::log.warning "TLS is disabled and port 443 will not be opened. DNS resolution continues normally."
+        fi
     fi
-fi
 
-# client_lookup.single_name_order only has meaning together with an upstream
-# (it orders the rDNS lookup results). The template drops it when no upstream is
-# set (ADR-0002 degrade); warn so the operator knows their setting was ignored.
-# Count the array directly: has_value treats an empty list as "present".
-SINGLE_NAME_ORDER_COUNT=$(jq -r '(.client_lookup.single_name_order // []) | length' /data/options.json 2>/dev/null || echo 0)
-if [ "${SINGLE_NAME_ORDER_COUNT}" -gt 0 ] && ! bashio::config.has_value 'client_lookup.upstream'; then
-    bashio::log.warning "client_lookup.single_name_order is set but client_lookup.upstream is missing; single_name_order is ignored."
+    # client_lookup.single_name_order only has meaning together with an upstream
+    # (it orders the rDNS lookup results). The template drops it when no upstream
+    # is set (ADR-0002 degrade); warn so the operator knows their setting was
+    # ignored. Intent from options (count the array directly: has_value treats an
+    # empty list as "present"); outcome OBSERVED in the rendered config (ADR-0007).
+    SINGLE_NAME_ORDER_COUNT=$(jq -r '(.client_lookup.single_name_order // []) | length' /data/options.json 2>/dev/null || echo 0)
+    if [ "${SINGLE_NAME_ORDER_COUNT}" -gt 0 ] && ! single_name_order_rendered "${CONFIG_PATH}/config.yml"; then
+        bashio::log.warning "client_lookup.single_name_order is set but client_lookup.upstream is missing; single_name_order is ignored."
+    fi
 fi
 
 # Create the on-disk block list download cache directory when enabled.
