@@ -19,6 +19,42 @@ if ! mkdir -p "${ADDON_CONFIG_PATH}"; then
     exit 1
 fi
 
+# render_config <out>: render the HA options through the Tempio template into
+# <out>, then prove the result is a non-empty, valid Blocky config. On ANY
+# failure it removes the partial/invalid render and returns non-zero; the caller
+# only needs `render_config <out> || exit 1`. Both configuration modes call this,
+# so the fatal wording is neutral — the info log each branch emits beforehand
+# tells the operator which mode they are in.
+#
+# Always removing the failed render matters for Custom Config Mode: a persisted
+# invalid config.yml would be mistaken for the operator's own config on the next
+# boot. It is harmless for Standard Mode, which regenerates every restart.
+render_config() {
+    local out="$1"
+    if ! tempio \
+        -conf /data/options.json \
+        -template /usr/share/tempio/blocky.gtpl \
+        -out "${out}"; then
+        bashio::log.fatal "Failed to generate configuration with tempio"
+        rm -f "${out}"
+        return 1
+    fi
+
+    if [ ! -f "${out}" ] || [ ! -s "${out}" ]; then
+        bashio::log.fatal "Configuration file was not created or is empty"
+        rm -f "${out}"
+        return 1
+    fi
+
+    if ! blocky validate --config "${out}"; then
+        bashio::log.fatal "Generated configuration is invalid"
+        rm -f "${out}"
+        return 1
+    fi
+
+    return 0
+}
+
 # Check if custom configuration is enabled
 if bashio::config.true 'custom_config'; then
     if [ -f "${ADDON_CONFIG_PATH}/config.yml" ]; then
@@ -27,27 +63,21 @@ if bashio::config.true 'custom_config'; then
         bashio::log.warning "UI options are IGNORED"
         bashio::log.info "Edit config.yml in this add-on's Home Assistant /addon_configs/... folder to modify your configuration"
         bashio::log.info "Inside the add-on container, this file is /config/config.yml"
+
+        # Validate the operator's own config so an invalid one fails fast with a
+        # clear error here instead of crash-looping Blocky at startup. This is
+        # Blocky's native validator, not a format-coupled text-parsing guard, so
+        # it is safe against a hand-written config (ADR-0004 governs the awk
+        # guards, not this). Never remove the file on failure — it belongs to the
+        # operator (unlike a render_config output, which we generated).
+        if ! blocky validate --config "${ADDON_CONFIG_PATH}/config.yml"; then
+            bashio::log.fatal "Existing custom config.yml is invalid. Fix it in this add-on's Home Assistant /addon_configs/... folder."
+            exit 1
+        fi
     else
         # Generate initial config for first run
         bashio::log.info "Custom config enabled: Generating initial configuration..."
-        if ! tempio \
-            -conf /data/options.json \
-            -template /usr/share/tempio/blocky.gtpl \
-            -out "${ADDON_CONFIG_PATH}/config.yml"; then
-            bashio::log.fatal "Failed to generate initial configuration with tempio"
-            exit 1
-        fi
-
-        if [ ! -f "${ADDON_CONFIG_PATH}/config.yml" ] || [ ! -s "${ADDON_CONFIG_PATH}/config.yml" ]; then
-            bashio::log.fatal "Configuration file was not created or is empty"
-            exit 1
-        fi
-
-        if ! blocky validate --config "${ADDON_CONFIG_PATH}/config.yml"; then
-            bashio::log.fatal "Generated initial configuration is invalid"
-            rm -f "${ADDON_CONFIG_PATH}/config.yml"
-            exit 1
-        fi
+        render_config "${ADDON_CONFIG_PATH}/config.yml" || exit 1
 
         bashio::log.info "Initial config created. You can now customize config.yml in this add-on's Home Assistant /addon_configs/... folder"
         bashio::log.info "Inside the add-on container, this file is /config/config.yml"
@@ -55,23 +85,7 @@ if bashio::config.true 'custom_config'; then
 else
     # Standard mode: always regenerate configuration from addon options
     bashio::log.info "Generating configuration from addon options..."
-    if ! tempio \
-        -conf /data/options.json \
-        -template /usr/share/tempio/blocky.gtpl \
-        -out "${ADDON_CONFIG_PATH}/config.yml"; then
-        bashio::log.fatal "Failed to generate configuration with tempio"
-        exit 1
-    fi
-
-    if [ ! -f "${ADDON_CONFIG_PATH}/config.yml" ] || [ ! -s "${ADDON_CONFIG_PATH}/config.yml" ]; then
-        bashio::log.fatal "Configuration file was not created or is empty"
-        exit 1
-    fi
-
-    if ! blocky validate --config "${ADDON_CONFIG_PATH}/config.yml"; then
-        bashio::log.fatal "Generated configuration is invalid"
-        exit 1
-    fi
+    render_config "${ADDON_CONFIG_PATH}/config.yml" || exit 1
 fi
 
 # Copy the generated config to the runtime location
