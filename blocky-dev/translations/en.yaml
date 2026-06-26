@@ -42,6 +42,11 @@ configuration:
         name: User Agent
         description: >-
           Custom User-Agent header for DNS-over-HTTPS (DoH) requests. Only applies to HTTPS upstream resolvers (https://...). Some DNS providers require or prefer specific User-Agent strings for identification, rate limiting, or analytics purposes. Leave empty to use Blocky's default User-Agent. Has no effect on DNS-over-TLS (tcp-tls:...), DNS-over-QUIC (quic:...), or plain DNS resolvers. Example: "MyNetwork-DNS/1.0" or "Blocky-HomeAssistant".
+
+  connect_ip_version:
+    name: Outgoing IP Version
+    description: >-
+      Controls which IP protocol Blocky uses for outgoing network connections, including upstream DNS resolvers and downloaded blocklists. Use dual for normal dual-stack behavior, v4 to force IPv4, or v6 to force IPv6. This does not filter client DNS query types or suppress AAAA answers; use Filtering if you need to block specific DNS record types. Default: dual.
   
   bootstrap:
     name: Bootstrap DNS
