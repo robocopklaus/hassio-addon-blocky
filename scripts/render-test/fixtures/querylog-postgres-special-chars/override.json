@@ -1,0 +1,9 @@
+{
+  "query_log": {
+    "type": "postgresql",
+    "db_host": "db\"host\\x",
+    "db_username": "user\\name",
+    "db_password": "p@ss w\"rd",
+    "db_database": "block\"db"
+  }
+}
