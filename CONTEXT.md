@@ -7,8 +7,8 @@ A containerized integration layer that translates Home Assistant add-on options 
 ### Configuration modes
 
 **Standard Mode**:
-The default. HA UI options are rendered through the Tempio template into the runtime config on every restart.
-_Avoid_: default mode, UI mode
+The default, curated HA-facing configuration surface: HA UI options are rendered through the Tempio template into the runtime config on every restart. It intentionally exposes only Blocky options that are understandable and broadly useful in Home Assistant; specialist Blocky settings belong in Custom Config Mode.
+_Avoid_: default mode, UI mode, full Blocky coverage
 
 **Custom Config Mode**:
 The operator supplies a complete Blocky YAML; template rendering is bypassed entirely and UI options are ignored. Generated once on first run, then preserved.

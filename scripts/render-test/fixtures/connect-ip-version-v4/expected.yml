@@ -17,17 +17,11 @@ upstreams:
   strategy: "parallel_best"
   timeout: "2s"
 # Outgoing IP Version
-connectIPVersion: "dual"
+connectIPVersion: "v4"
 # Bootstrap DNS
 bootstrapDns:
   - upstream: "1.1.1.1"
   - upstream: "8.8.8.8"
-# Client Name Lookup
-clientLookup:
-  upstream: "192.168.178.1"
-  singleNameOrder:
-    - 2
-    - 1
 # Blocking & Allowlists
 blocking:
   denylists:

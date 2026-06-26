@@ -40,6 +40,7 @@ options:
     quic:
       max_idle_timeout: ""
       keep_alive_period: ""
+  connect_ip_version: dual
   bootstrap:
     dns:
       - upstream: 1.1.1.1
@@ -150,6 +151,7 @@ schema:
     quic:
       max_idle_timeout: str?
       keep_alive_period: str?
+  connect_ip_version: list(dual|v4|v6)?
   bootstrap:
     dns:
       - upstream: str

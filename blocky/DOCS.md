@@ -33,6 +33,16 @@ If your WAN link is unreliable, consider `init_strategy: fast` to avoid startup 
 
 > **Migration note:** Blocky folded "verify upstreams on start" into the init strategy, so the separate `start_verify` option is **deprecated**. It is still accepted — existing configurations keep working unchanged, and `start_verify: true` is automatically mapped to `init_strategy: failOnError`. No action is required; switch to `init_strategy` at your convenience. `start_verify` will be removed in a future major release.
 
+### Outgoing IP Version
+
+Controls which IP protocol Blocky uses for outgoing network connections, including upstream DNS resolvers and downloaded blocklists.
+
+- `dual` (default): allow both IPv4 and IPv6
+- `v4`: force IPv4 outgoing connections
+- `v6`: force IPv6 outgoing connections
+
+This does not filter client DNS query types or suppress AAAA answers. To block specific DNS record types, use Filtering.
+
 ### Bootstrap DNS
 
 Required when upstream DNS uses hostnames (e.g., `tcp-tls:dns.google`). Bootstrap resolvers are simple IP-based DNS servers that resolve those hostnames, breaking the circular dependency.

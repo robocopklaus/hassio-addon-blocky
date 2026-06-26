@@ -44,6 +44,10 @@ upstreams:
   userAgent: {{ .upstreams.user_agent | quote }}
 {{- end }}
 
+{{- if .connect_ip_version }}
+# Outgoing IP Version
+connectIPVersion: {{ .connect_ip_version | quote }}
+{{- end }}
 
 {{- if .bootstrap.dns }}
 # Bootstrap DNS
