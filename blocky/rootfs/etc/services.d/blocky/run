@@ -27,12 +27,15 @@ if [ ! -s "${CONFIG_FILE}" ]; then
     exit 1
 fi
 
-# Validate configuration against Blocky's schema
-bashio::log.info "Validating Blocky configuration..."
-if ! blocky validate --config "${CONFIG_FILE}"; then
-    bashio::log.fatal "Configuration validation failed: ${CONFIG_FILE}"
-    exit 1
-fi
+# No `blocky validate` here on purpose: cont-init.d/config.sh validates the
+# config in every mode before copying it into place — render_config validates a
+# freshly rendered config (standard mode and custom-config first run), and the
+# existing-custom-config branch validates the operator's file directly. Nothing
+# mutates /etc/blocky/config.yml between init and service start (or across s6
+# restarts, which re-run this script but not config.sh), so re-validating here
+# would re-prove an immutable, already-proven file on every restart. The cheap
+# existence/readable/non-empty checks above stay — they catch a missing or
+# truncated copy near-free.
 
 bashio::log.info "Pre-flight checks passed"
 bashio::log.info "Starting Blocky..."
