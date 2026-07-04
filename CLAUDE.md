@@ -91,7 +91,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 - **Versioning**: `scripts/update-addon-version.mjs` is called by semantic-release to stamp the version into `blocky/config.yaml`
 - **Commits**: conventional commits (`feat:` → minor, `fix:` → patch, `feat(deps):` for Blocky updates, `fix(deps):` for Tempio)
 - **Dev Deploy** (`.github/workflows/deploy-dev.yml`): push to main touching `blocky/**` → syncs `blocky-dev/` with patched config → commits back to main with `[skip ci]`
-- **Renovate** (`renovate.json`): auto-updates Blocky, Tempio, base images, and semantic-release packages. Patches auto-merge; Blocky bumps require manual review.
+- **Renovate** (`renovate.json`): auto-updates Blocky, Tempio, base images, and semantic-release packages. Patches auto-merge; Blocky bumps require manual review — see `docs/agents/blocky-bump-review.md` for what that review is.
 
 ## Testing
 
