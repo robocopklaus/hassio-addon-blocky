@@ -62,12 +62,14 @@
       "automerge": false
     },
     {
-      "description": "Group semantic-release packages",
+      "description": "Group release tooling (semantic-release plugins and the conventionalcommits changelog preset) and keep it manual. These drive the release pipeline; a preset major that outpaces the plugins silently empties the GitHub release notes, so every bump must be reviewed against `pnpm release:dry-run`.",
       "groupName": "semantic-release packages",
       "matchPackageNames": [
         "/^@semantic-release//",
-        "/^semantic-release$/"
-      ]
+        "/^semantic-release$/",
+        "conventional-changelog-conventionalcommits"
+      ],
+      "automerge": false
     },
     {
       "description": "Blocky updates trigger a version bump and require manual review",
