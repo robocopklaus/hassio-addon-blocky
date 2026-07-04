@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.1.0] - unreleased
+
+### Added
+
+- Outgoing connection IP version control: `connect_ip_version` (`dual`/`v4`/`v6`) restricts whether Blocky uses IPv4, IPv6, or both when connecting to upstream resolvers (#256)
+
+### Changed
+
+- Blocky upgraded from v0.32.1 to v0.33.0
+- ECS `use_as_client` now applies before caching and client-name lookup (upstream fix in Blocky 0.33.0). No configuration change is needed; this only affects setups that have `ecs.use_as_client: true`.
+
 ## [5.0.0] - 2026-06-25
 
 Bundles all changes since 4.1.1 (the previously documented 4.2.0 was never released; its contents ship here).
