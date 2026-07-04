@@ -32,6 +32,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
+import { dockerRenderHint } from "./docker-render.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..");
@@ -63,8 +64,7 @@ if (process.platform !== "linux") {
       `This harness runs the shipped Linux ${"tempio"}/${"blocky"} binaries and must run on Linux.`,
       `tempio publishes no macOS build, so render here through a throwaway Linux container:`,
       ``,
-      `  docker run --rm -e CI=true -v "$PWD":/work -w /work node:24-bookworm-slim \\`,
-      `    sh -c 'corepack enable && pnpm install --frozen-lockfile && node scripts/render-test/run.mjs${UPDATE ? " --update" : ""}'`,
+      dockerRenderHint({ update: UPDATE }),
       ``,
     ].join("\n")
   );

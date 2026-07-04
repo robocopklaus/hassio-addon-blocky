@@ -18,6 +18,14 @@ docker build --build-arg BUILD_ARCH=amd64 -t blocky-addon blocky
 hadolint blocky/Dockerfile
 shellcheck blocky/rootfs/etc/cont-init.d/*.sh blocky/rootfs/etc/services.d/blocky/*
 
+# Test (from repo root)
+pnpm check              # all three checks: contracts + guards + render
+                        # render runs bare on Linux, auto-dispatched to Docker on macOS
+pnpm check:contracts    # static three-file parity (options/schema/translations/template)
+pnpm check:guards       # runtime guard functions vs committed render goldens
+pnpm check:render       # real tempio+blocky render vs goldens; Linux only
+                        # (on macOS it refuses with a Docker hint — use `pnpm check`)
+
 # Release (semantic-release via pnpm)
 pnpm release:dry-run    # preview what would be released
 pnpm release            # create release (CI runs this via workflow_dispatch)
@@ -87,7 +95,15 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 
 ## Testing
 
-No automated tests. Testing is manual: install in Home Assistant, configure, check logs, verify DNS resolution, test API at `http://[HOST]:4000/api/blocking/status`.
+Automated checks guard the translation pipeline — run all three with `pnpm check` (see Development Commands):
+
+- **Config contract** (`scripts/check-config-contract.mjs`) — static three-file parity: every top-level option exists in the schema and translations and is referenced by the template, enum defaults are valid, and the deprecation registry holds (ADR-0005).
+- **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; on macOS `pnpm check` dispatches it into a throwaway Docker container.
+- **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004).
+
+`pnpm check` runs contracts + guards always and gates render on their success; it exits non-zero if render *cannot* run (e.g. Docker down off-Linux) so a green result never hides an unverified render. CI (`lint.yml`) runs the three as parallel jobs rather than the aggregate — see ADR-0008.
+
+Beyond the automated checks, end-to-end verification is still manual: install in Home Assistant, configure, check logs, verify DNS resolution, and test the API at `http://[HOST]:4000/api/blocking/status`.
 
 ## External Documentation
 

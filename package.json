@@ -7,7 +7,9 @@
   },
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "check": "node scripts/check.mjs",
     "check:contracts": "node scripts/check-config-contract.mjs",
+    "check:guards": "bash scripts/test-guards.sh",
     "check:render": "node scripts/render-test/run.mjs",
     "render:update": "node scripts/render-test/run.mjs --update",
     "release": "semantic-release",
