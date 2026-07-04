@@ -1,8 +1,32 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  escapeRegExp,
+  extractSectionKeyPaths,
+  extractSectionScalarValues,
+  extractTopLevelKeys,
+} from "./lib/config-walkers.mjs";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+// The three config.yaml walkers are the load-bearing primitive of this checker,
+// so guard them before trusting anything they report. Running the pinning tests
+// here — rather than as a separate package/CI step — single-sources "contracts
+// includes the walker guard" across every caller of this script (the check:contracts
+// package script, the pnpm check aggregate, and the CI contracts job all invoke
+// `node scripts/check-config-contract.mjs` directly). Zero deps: node's built-in
+// test runner (ADR-0003). A failing walker test fails the contract check.
+const WALKER_TEST = path.join(path.dirname(fileURLToPath(import.meta.url)), "lib", "config-walkers.test.mjs");
+const walkerTests = spawnSync(process.execPath, ["--test", WALKER_TEST], {
+  cwd: ROOT_DIR,
+  stdio: "inherit",
+});
+if (walkerTests.status !== 0) {
+  process.exit(walkerTests.status ?? 1);
+}
+
 const CONFIG_PATH = path.join(ROOT_DIR, "blocky", "config.yaml");
 const DEPRECATIONS_PATH = path.join(ROOT_DIR, "scripts", "deprecations.json");
 const FIXTURES_DIR = path.join(ROOT_DIR, "scripts", "render-test", "fixtures");
@@ -23,153 +47,6 @@ const translationYaml = readFileSync(TRANSLATION_PATH, "utf8");
 
 const errors = [];
 const templateExemptions = new Set(["custom_config"]);
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function isSectionRoot(line, sectionName) {
-  return new RegExp(`^${escapeRegExp(sectionName)}:\\s*$`).test(line.trim());
-}
-
-function extractTopLevelKeys(content, sectionName) {
-  const lines = content.split(/\r?\n/);
-  const keys = new Set();
-  let inSection = false;
-
-  for (const line of lines) {
-    if (!inSection) {
-      if (isSectionRoot(line, sectionName) && !line.startsWith(" ")) {
-        inSection = true;
-      }
-      continue;
-    }
-
-    if (line.trim() === "" || line.trim().startsWith("#")) {
-      continue;
-    }
-
-    if (!line.startsWith(" ")) {
-      break;
-    }
-
-    const match = line.match(/^  ([A-Za-z0-9_]+):\s*/);
-    if (match) {
-      keys.add(match[1]);
-    }
-  }
-
-  return keys;
-}
-
-function stripInlineComment(value) {
-  const quote = value.startsWith('"') ? '"' : value.startsWith("'") ? "'" : null;
-  if (quote) {
-    return value;
-  }
-
-  const commentIndex = value.indexOf(" #");
-  if (commentIndex >= 0) {
-    return value.slice(0, commentIndex).trim();
-  }
-
-  return value;
-}
-
-function extractSectionScalarValues(content, sectionName) {
-  const lines = content.split(/\r?\n/);
-  const values = new Map();
-  const stack = [];
-  let inSection = false;
-
-  for (const line of lines) {
-    if (!inSection) {
-      if (isSectionRoot(line, sectionName) && !line.startsWith(" ")) {
-        inSection = true;
-      }
-      continue;
-    }
-
-    if (line.trim() === "" || line.trim().startsWith("#")) {
-      continue;
-    }
-
-    if (!line.startsWith(" ")) {
-      break;
-    }
-
-    const match = line.match(/^(\s*)([A-Za-z0-9_]+):\s*(.*)$/);
-    if (!match) {
-      continue;
-    }
-
-    const indent = match[1].length;
-    const key = match[2];
-    const rawValue = stripInlineComment(match[3]);
-    const relativeIndent = indent - 2;
-
-    if (relativeIndent < 0 || relativeIndent % 2 !== 0) {
-      continue;
-    }
-
-    const level = relativeIndent / 2;
-    stack.length = level;
-    stack[level] = key;
-
-    if (rawValue !== "") {
-      values.set(stack.join("."), rawValue);
-    }
-  }
-
-  return values;
-}
-
-// Like extractSectionScalarValues, but records the dotted path of *every* key
-// regardless of whether it carries a scalar value. Used to test key presence
-// (e.g. a deprecated key with a bare-empty default, or a container key) without
-// the value-only filtering that would otherwise report such keys as missing.
-function extractSectionKeyPaths(content, sectionName) {
-  const lines = content.split(/\r?\n/);
-  const paths = new Set();
-  const stack = [];
-  let inSection = false;
-
-  for (const line of lines) {
-    if (!inSection) {
-      if (isSectionRoot(line, sectionName) && !line.startsWith(" ")) {
-        inSection = true;
-      }
-      continue;
-    }
-
-    if (line.trim() === "" || line.trim().startsWith("#")) {
-      continue;
-    }
-
-    if (!line.startsWith(" ")) {
-      break;
-    }
-
-    const match = line.match(/^(\s*)([A-Za-z0-9_]+):\s*(.*)$/);
-    if (!match) {
-      continue;
-    }
-
-    const indent = match[1].length;
-    const relativeIndent = indent - 2;
-
-    if (relativeIndent < 0 || relativeIndent % 2 !== 0) {
-      continue;
-    }
-
-    const level = relativeIndent / 2;
-    stack.length = level;
-    stack[level] = match[2];
-    paths.add(stack.join("."));
-  }
-
-  return paths;
-}
 
 // True when the dotted path resolves to a present key in a parsed override.json.
 // Proves a deprecation fixture actually exercises the key (not just that the
