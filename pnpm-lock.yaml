@@ -26,8 +26,8 @@ importers:
         specifier: 10.0.1
         version: 10.0.1(semantic-release@25.0.5)
       '@semantic-release/github':
-        specifier: 12.0.8
-        version: 12.0.8(semantic-release@25.0.5)
+        specifier: 12.0.9
+        version: 12.0.9(semantic-release@25.0.5)
       '@semantic-release/release-notes-generator':
         specifier: 14.1.1
         version: 14.1.1(semantic-release@25.0.5)
@@ -166,8 +166,8 @@ packages:
     peerDependencies:
       semantic-release: '>=18.0.0'
 
-  '@semantic-release/github@12.0.8':
-    resolution: {integrity: sha512-tej5AAgK5X9wHRoDmYhecMXEHEkFeGOY1XsEblKxu8pIQwahzf1STYyr7iPU6Lpbg6C5I3N2w/ocXrBo+L7jhw==}
+  '@semantic-release/github@12.0.9':
+    resolution: {integrity: sha512-ODIqb0V3QqndipryEEiaBxUQCFjvv7Oese5Dt4omMGa60YRNEW0Sx3K+zri0uac2Y6S9nOlMehciWIzvvRCTGQ==}
     engines: {node: ^22.14.0 || >= 24.10.0}
     peerDependencies:
       semantic-release: '>=24.1.0'
@@ -1192,10 +1192,6 @@ packages:
     engines: {node: '>=0.8.0'}
     hasBin: true
 
-  undici@6.27.0:
-    resolution: {integrity: sha512-YmfV3YnEDzXRC5lZ2jWtWWHKGUm1zIt8AhesR1tens+HTNv+YZlN/dp6G727LOvMJ8xjP9Be7Y2Sdr96LDm+pg==}
-    engines: {node: '>=18.17'}
-
   undici@7.28.0:
     resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
@@ -1303,7 +1299,7 @@ snapshots:
   '@actions/http-client@4.0.0':
     dependencies:
       tunnel: 0.0.6
-      undici: 6.27.0
+      undici: 7.28.0
 
   '@actions/io@3.0.2': {}
 
@@ -1446,7 +1442,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@semantic-release/github@12.0.8(semantic-release@25.0.5)':
+  '@semantic-release/github@12.0.9(semantic-release@25.0.5)':
     dependencies:
       '@octokit/core': 7.0.6
       '@octokit/plugin-paginate-rest': 14.0.0(@octokit/core@7.0.6)
@@ -2208,7 +2204,7 @@ snapshots:
     dependencies:
       '@semantic-release/commit-analyzer': 13.0.1(semantic-release@25.0.5)
       '@semantic-release/error': 4.0.0
-      '@semantic-release/github': 12.0.8(semantic-release@25.0.5)
+      '@semantic-release/github': 12.0.9(semantic-release@25.0.5)
       '@semantic-release/npm': 13.1.4(semantic-release@25.0.5)
       '@semantic-release/release-notes-generator': 14.1.1(semantic-release@25.0.5)
       aggregate-error: 5.0.0
@@ -2395,8 +2391,6 @@ snapshots:
 
   uglify-js@3.19.3:
     optional: true
-
-  undici@6.27.0: {}
 
   undici@7.28.0: {}
 
