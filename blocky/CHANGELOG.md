@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.2.0]
+
+### Changed
+
+- Blocky upgraded from v0.33.0 to v0.34.0
+- Bootstrap DNS now tries the remaining resolved addresses when a connection attempt fails, instead of giving up after the first one (upstream fix in Blocky 0.34.0). No configuration change is needed; this affects every setup, since `bootstrap.dns` ships with defaults.
+- A single `/` line in a downloaded blocklist no longer crashes Blocky (upstream fix in Blocky 0.34.0). This also covers the denylists shipped by default.
+
 ## [5.1.0] - 2026-07-04
 
 ### Added
