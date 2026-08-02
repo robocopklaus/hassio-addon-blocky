@@ -72,7 +72,7 @@ probe_split_response() {
     esac
 }
 
-# probe_classify <http_status> <body> -> resolved | failed | inconclusive | unreachable
+# probe_classify <http_status> <body> [curl_exit] -> resolved | failed | inconclusive | unreachable
 #
 # Turns one /api/query exchange into a verdict about the UPSTREAMS. The four
 # outcomes exist because only two of them are about upstream health at all:
@@ -81,17 +81,40 @@ probe_split_response() {
 #                answer — it proves the query reached a resolver that replied)
 #   failed       the resolver chain could not get an answer. Blocky's API turns
 #                a chain error into a 5xx; SERVFAIL/BOGUS is the same failure
-#                arriving as a DNS return code
+#                arriving as a DNS return code; and a query the API accepted but
+#                never answered is that failure with no return code to carry it
 #   inconclusive Blocky answered locally (cache, blocking, filtering, custom
 #                DNS, special-use names) or the response was not one we
 #                understand — says nothing about upstreams, so never warn
-#   unreachable  no HTTP response at all: Blocky is down or still starting,
-#                which is Blocky's own logging to report, not the probe's
+#   unreachable  no HTTP response at all AND no sign the query was accepted:
+#                Blocky is down or still starting, which is Blocky's own logging
+#                to report, not the probe's
+#
+# curl_exit is curl's own exit code, and it is load-bearing for exactly one
+# case. An upstream that swallows packets rather than refusing them — the
+# failure #310 was raised about — leaves Blocky waiting until its own
+# upstreams.timeout, so the probe hits its budget first and gets no HTTP status.
+# Read from the status alone that is indistinguishable from Blocky being down,
+# and reporting it as `unreachable` would restore the very silence this probe
+# exists to break. Against a listener on 127.0.0.1 a connection either succeeds
+# or is refused immediately, so a timeout there means the query WAS accepted and
+# went unanswered. Defaults to 0 so a caller with no exit code to offer keeps the
+# conservative reading.
 probe_classify() {
-    local status="$1" body="$2" rtype rcode
+    local status="$1" body="$2" curl_exit="${3:-0}" rtype rcode
 
+    # curl(1): 28 is "operation timeout". Checked before the status, but only
+    # ever reached when there is no status — a completed exchange cannot time
+    # out, so a real 2xx/4xx/5xx below is never overridden.
     case "${status}" in
-        "" | 000) echo unreachable; return ;;
+        "" | 000)
+            if [ "${curl_exit}" = "28" ]; then
+                echo failed
+            else
+                echo unreachable
+            fi
+            return
+            ;;
         5??) echo failed; return ;;
         200) ;;
         *) echo inconclusive; return ;;

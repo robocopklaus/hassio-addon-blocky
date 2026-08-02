@@ -174,12 +174,12 @@ done
 source "${ROOT}/blocky/rootfs/usr/lib/blocky/upstream_probe.sh"
 
 assert_classify() {
-    local status="$1" body="$2" want="$3" got
-    got="$(probe_classify "${status}" "${body}")"
+    local status="$1" body="$2" want="$3" curl_exit="${4:-0}" got
+    got="$(probe_classify "${status}" "${body}" "${curl_exit}")"
     if [ "${got}" = "${want}" ]; then
-        pass "classify ${status} ${body:-<empty>} -> ${got}"
+        pass "classify ${status} ${body:-<empty>} (curl ${curl_exit}) -> ${got}"
     else
-        bad "classify ${status} ${body:-<empty>} -> ${got}, want ${want}"
+        bad "classify ${status} ${body:-<empty>} (curl ${curl_exit}) -> ${got}, want ${want}"
     fi
 }
 
@@ -206,10 +206,27 @@ assert_classify 400 'unknown query type' inconclusive
 assert_classify 200 'not json at all' inconclusive
 assert_classify 200 '{"responseType":"RESOLVED"}' inconclusive
 
-# curl writes 000 when it never got an HTTP response: Blocky is down or still
-# starting, which is not an upstream verdict.
+# curl writes 000 when it never got an HTTP response, but 000 alone does not say
+# WHY, and the two whys are opposite verdicts. curl's exit code separates them.
+#
+# Could not connect at all (7 = refused, 6 = DNS, 0 = anything else that left us
+# without a status): Blocky is down or still starting, which is Blocky's own
+# logging to report, not an upstream verdict.
 assert_classify 000 '' unreachable
 assert_classify '' '' unreachable
+assert_classify 000 '' unreachable 7
+assert_classify 000 '' unreachable 6
+
+# Timed out (28) against a listener on 127.0.0.1, where a connection either
+# succeeds or is refused at once: Blocky accepted the query and never answered,
+# which is the resolver chain hanging on upstreams that swallow packets rather
+# than refuse them. That is the silent failure #310 is about, so it must warn.
+assert_classify 000 '' failed 28
+assert_classify '' '' failed 28
+
+# A real HTTP status is its own evidence; the exit code cannot override it.
+assert_classify 200 '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}' resolved 0
+assert_classify 500 'query failed' failed 0
 
 # The curl -w split: status after the last newline, everything before it the
 # body. This is what feeds probe_classify at runtime, so it is pinned here
@@ -230,18 +247,21 @@ assert_split '' ' '
 
 # A split response must survive the round trip into a verdict unchanged — this
 # is the seam the service loop crosses, so exercise it end to end.
-for pair in \
-    "$(printf '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}\n200')|resolved" \
-    "$(printf 'query failed\n500')|failed" \
-    "$(printf '\n000')|unreachable"; do
-    response="${pair%|*}"
-    want="${pair##*|}"
+for triple in \
+    "$(printf '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}\n200')|0|resolved" \
+    "$(printf 'query failed\n500')|0|failed" \
+    "$(printf '\n000')|7|unreachable" \
+    "$(printf '\n000')|28|failed"; do
+    response="${triple%%|*}"
+    want="${triple##*|}"
+    curl_exit="${triple#*|}"
+    curl_exit="${curl_exit%|*}"
     split="$(probe_split_response "${response}")"
-    got="$(probe_classify "${split%% *}" "${split#* }")"
+    got="$(probe_classify "${split%% *}" "${split#* }" "${curl_exit}")"
     if [ "${got}" = "${want}" ]; then
-        pass "split+classify -> ${got}"
+        pass "split+classify (curl ${curl_exit}) -> ${got}"
     else
-        bad "split+classify -> ${got}, want ${want}"
+        bad "split+classify (curl ${curl_exit}) -> ${got}, want ${want}"
     fi
 done
 

@@ -25,11 +25,20 @@ readonly API_BASE="http://127.0.0.1:4000"
 # query log an operator reads, fast enough to name the cause of an outage long
 # before they finish checking their router. Two consecutive failures before
 # warning keeps a single dropped packet out of the log; re-warning after another
-# twelve failed probes (about an hour) means a log opened at any point during a
-# long outage still explains itself.
+# twelve failed probes (an hour, or a little over while probes are timing out)
+# means a log opened at any point during a long outage still explains itself.
 readonly PROBE_INTERVAL=300
 readonly FAILURE_THRESHOLD=2
 readonly REWARN_AFTER_FAILED_PROBES=12
+
+# How long one probe may wait for an answer. Deliberately well above the shipped
+# `upstreams.timeout` of 2s and above any latency a DNS client would sit through,
+# so hitting it means the resolver chain is stuck rather than merely slow — an
+# operator who raises upstreams.timeout past this has chosen a timeout no stub
+# resolver on their network will wait for either. The interval sleep runs after
+# the probe, so a probe that burns its whole budget stretches the cycle to 330s;
+# small enough that the cadence below is still accurate to within a few minutes.
+readonly PROBE_TIMEOUT=30
 
 # Warm-up: Blocky and this service start together, so the API is not up yet.
 # Poll briefly for it rather than let the first real probe wait a full interval.
@@ -49,20 +58,24 @@ fi
 
 # One probe. Prints the verdict; see probe_classify for the four outcomes.
 probe_once() {
-    local name response split
+    local name response curl_exit split
     name="$(probe_query_name)"
 
     # -s (not -sS): a connection error every interval while Blocky is down is
     # noise, and the verdict already says so. -w appends the status code, which
     # probe_split_response separates back out.
-    response="$(curl -s -m 10 -X POST \
+    response="$(curl -s -m "${PROBE_TIMEOUT}" -X POST \
         -H 'Content-Type: application/json' \
         -d "{\"query\":\"${name}\",\"type\":\"A\"}" \
         -w '\n%{http_code}' \
         "${API_BASE}/api/query")"
+    # curl is the only command in that substitution, so this is its exit code.
+    # It is what tells a query Blocky accepted and never answered apart from
+    # Blocky not being there at all — see probe_classify.
+    curl_exit=$?
 
     split="$(probe_split_response "${response}")"
-    probe_classify "${split%% *}" "${split#* }"
+    probe_classify "${split%% *}" "${split#* }" "${curl_exit}"
 }
 
 warn_unreachable() {

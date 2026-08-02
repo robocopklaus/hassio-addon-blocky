@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.3.0]
+
+### Added
+
+- Upstream resolution probe: the add-on now warns in its log when the upstream resolvers stop answering, and says so again when they recover. Previously a total upstream outage looked like a healthy add-on and showed up only as clients timing out. It only reports — the add-on never restarts or stops itself over a failing upstream. Standard Mode only (#310)
+
 ## [5.2.0] - 2026-07-31
 
 ### Changed
