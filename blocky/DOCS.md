@@ -34,7 +34,7 @@ See [Custom Config Mode](#custom-config-mode) for how to enable and use it.
 
 **"Required" means the key must be present — not that you must fill it in.** An empty string, an empty list, or a zero all satisfy Home Assistant's check, so a required field you have never touched is not doing anything. What is genuinely enforced is the required keys *inside* a list entry — a denylist's `name`, a bootstrap DNS `upstream`, a Custom DNS `hostname` — because those are map keys in Blocky's own YAML. At the top level, nothing must be set.
 
-**Deleting settings you don't use won't shrink your configuration.** Home Assistant merges this add-on's defaults back underneath your saved options every time it reads them, so a deleted key reappears — and for whole groups and lists it is refused outright with `Missing option '<key>' in <group>`, because Home Assistant's schema language has no way to mark a group optional. Leave the defaults alone. If the size of the configuration is what bothers you, that is what Custom Config Mode is for.
+**Deleting settings you don't use won't shrink your configuration.** Home Assistant merges this add-on's defaults back underneath your saved options every time it reads them, so a deleted key reappears — and for whole groups and lists of entries it is refused outright with `Missing option '<key>' in <group>`, because Home Assistant's schema language has no way to mark a group optional. Leave the defaults alone. If the size of the configuration is what bothers you, that is what Custom Config Mode is for.
 
 ### Finding a Blocky option in the add-on
 
@@ -481,7 +481,7 @@ DNS amplification is a type of DDoS attack where an attacker sends small DNS que
 
 ### Saving options fails with a missing-option error
 
-Home Assistant refuses to save with `Missing option '<key>' in <group>` if you delete a whole settings group or list from the add-on's YAML editor. Its schema language has no way to mark a group as optional, so every group this add-on defines must be present. Put the key back — nothing is broken.
+Home Assistant refuses to save with `Missing option '<key>' in <group>` if you delete a whole settings group, or a list of entries such as an upstream group, a denylist, or a client mapping, from the add-on's YAML editor. Its schema language has no way to mark those as optional, so every one this add-on defines must be present. Put the key back — nothing is broken. Lists of plain values, such as `query_types` or `exclude`, can be deleted without the error, though they too reappear on the next page load.
 
 Deleting settings you don't use won't shrink your configuration in any case: Home Assistant merges the add-on's defaults back underneath your saved options every time it reads them. See [What's actually required](#whats-actually-required) for why, and [Custom Config Mode](#custom-config-mode) if a smaller configuration file is what you're after.
 
