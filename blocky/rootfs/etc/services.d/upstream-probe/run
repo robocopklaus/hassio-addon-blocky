@@ -78,7 +78,7 @@ probe_once() {
     probe_classify "${split%% *}" "${split#* }" "${curl_exit}"
 }
 
-warn_unreachable() {
+warn_upstreams_failing() {
     bashio::log.warning "Upstream DNS resolution is failing: a test query through Blocky reached none of the configured upstream resolvers."
     bashio::log.warning "Clients will see DNS time out until this recovers. Check this machine's internet connection first, then the resolvers under Upstream DNS Servers -> groups -> default in the add-on options."
     bashio::log.warning "Blocky keeps running and starts resolving again on its own as soon as an upstream answers."
@@ -112,20 +112,20 @@ while true; do
                 failed_probes_since_warning=$((failed_probes_since_warning + 1))
                 if [ "${failed_probes_since_warning}" -ge "${REWARN_AFTER_FAILED_PROBES}" ]; then
                     failed_probes_since_warning=0
-                    warn_unreachable
+                    warn_upstreams_failing
                 fi
             elif [ "${consecutive_failures}" -ge "${FAILURE_THRESHOLD}" ]; then
                 state=failing
                 failed_probes_since_warning=0
-                warn_unreachable
+                warn_upstreams_failing
             fi
             ;;
         *)
-            # inconclusive (Blocky answered locally) or unreachable (Blocky is
-            # down or restarting). Neither is a statement about the upstreams,
-            # so neither moves the state or warns. The failure run does reset:
-            # "two consecutive failures" has to mean two in a row with nothing
-            # in between, or one failure now and one next week would warn.
+            # inconclusive: Blocky answered locally, or is not answering at all.
+            # Not a statement about the upstreams, so it neither moves the state
+            # nor warns. The failure run does reset, though: "two consecutive
+            # failures" has to mean two in a row with nothing in between, or one
+            # failure now and one next week would eventually warn.
             consecutive_failures=0
             ;;
     esac

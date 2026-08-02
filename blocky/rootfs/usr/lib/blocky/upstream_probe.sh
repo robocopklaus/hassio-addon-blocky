@@ -65,17 +65,18 @@ probe_split_response() {
     status="${response##*$'\n'}"
     body="${response%$'\n'*}"
     # No newline at all means curl produced nothing (not even a status): there
-    # is no body, and the empty status classifies as unreachable.
+    # is no body, and the empty status classifies as inconclusive.
     case "${response}" in
         *$'\n'*) printf '%s %s\n' "${status}" "${body}" ;;
         *) printf ' %s\n' "${response}" ;;
     esac
 }
 
-# probe_classify <http_status> <body> [curl_exit] -> resolved | failed | inconclusive | unreachable
+# probe_classify <http_status> <body> [curl_exit] -> resolved | failed | inconclusive
 #
-# Turns one /api/query exchange into a verdict about the UPSTREAMS. The four
-# outcomes exist because only two of them are about upstream health at all:
+# Turns one /api/query exchange into a verdict about the UPSTREAMS. Only two
+# outcomes are statements about upstream health; everything else is one bucket,
+# because the caller has exactly one thing to do with all of it — nothing:
 #
 #   resolved     an upstream answered (NXDOMAIN for the probe name is a healthy
 #                answer — it proves the query reached a resolver that replied)
@@ -83,23 +84,22 @@ probe_split_response() {
 #                a chain error into a 5xx; SERVFAIL/BOGUS is the same failure
 #                arriving as a DNS return code; and a query the API accepted but
 #                never answered is that failure with no return code to carry it
-#   inconclusive Blocky answered locally (cache, blocking, filtering, custom
-#                DNS, special-use names) or the response was not one we
-#                understand — says nothing about upstreams, so never warn
-#   unreachable  no HTTP response at all AND no sign the query was accepted:
-#                Blocky is down or still starting, which is Blocky's own logging
-#                to report, not the probe's
+#   inconclusive says nothing about the upstreams, so never warn: Blocky
+#                answered locally (cache, blocking, filtering, custom DNS,
+#                special-use names), or Blocky is not answering at all because
+#                it is down or still starting — its own logging owns that — or
+#                the response was not one we understand
 #
 # curl_exit is curl's own exit code, and it is load-bearing for exactly one
 # case. An upstream that swallows packets rather than refusing them — the
 # failure #310 was raised about — leaves Blocky waiting until its own
 # upstreams.timeout, so the probe hits its budget first and gets no HTTP status.
 # Read from the status alone that is indistinguishable from Blocky being down,
-# and reporting it as `unreachable` would restore the very silence this probe
-# exists to break. Against a listener on 127.0.0.1 a connection either succeeds
-# or is refused immediately, so a timeout there means the query WAS accepted and
-# went unanswered. Defaults to 0 so a caller with no exit code to offer keeps the
-# conservative reading.
+# and calling it inconclusive would restore the very silence this probe exists
+# to break. Against a listener on 127.0.0.1 a connection either succeeds or is
+# refused immediately, so a timeout there means the query WAS accepted and went
+# unanswered. Defaults to 0 so a caller with no exit code to offer keeps the
+# quiet reading.
 probe_classify() {
     local status="$1" body="$2" curl_exit="${3:-0}" rtype rcode
 
@@ -111,7 +111,7 @@ probe_classify() {
             if [ "${curl_exit}" = "28" ]; then
                 echo failed
             else
-                echo unreachable
+                echo inconclusive
             fi
             return
             ;;

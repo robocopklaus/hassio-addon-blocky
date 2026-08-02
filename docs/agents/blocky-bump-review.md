@@ -36,14 +36,19 @@ Note that a closed enum (e.g. `query_log.type`) makes non-exposition zero-effort
 
 ### Consumed API change (an endpoint or response shape we read)
 
-No table here — the axes above do not apply, because nothing about this is opt-in and no default is involved: we either still read the endpoint correctly or we do not. **Hold by default.** The coupled code is `blocky/rootfs/usr/lib/blocky/upstream_probe.sh` (verdict logic) and the `watchdog` URL in `blocky/config.yaml`; the recorded responses in `scripts/test-guards.sh` must be re-pinned against the new version before the bump merges.
+No table here — the axes above do not apply, because nothing about this is opt-in and no default is involved: we either still read the endpoint correctly or we do not. The coupled code is `blocky/rootfs/usr/lib/blocky/upstream_probe.sh` (verdict logic) and the `watchdog` URL in `blocky/config.yaml`, with the recorded responses pinned in `scripts/test-guards.sh`.
 
-Two distinct failure modes, and they are not equally safe. A changed *response shape* degrades to `inconclusive` — the probe goes quiet, which is a lost signal but never a false one. A change in how Blocky behaves when it **cannot** answer (5xx, SERVFAIL, or holding the connection open until the probe's own timeout) changes what the probe *concludes*, and can make it warn wrongly or stay silent through a real outage. Scan release notes for both, and treat the second as the one that must be verified by hand rather than reasoned about. See ADR-0012.
+Split on what the change can do to the probe's *verdict*, because the two failure modes are not equally dangerous:
+
+- **A changed response shape, a renamed field, a new response type — note it, merge, re-pin the recordings.** The probe degrades to `inconclusive` by construction: an unrecognised shape is never mistaken for proof. The cost is a signal that goes quiet, which is the same position we were in before ADR-0012 and is not worth blocking a security-relevant Blocky bump over. Re-pin `scripts/test-guards.sh` in the same PR (ADR-0009) or, if that needs real work, file it and merge the bump.
+- **A change in how Blocky behaves when it cannot answer — Hold.** Whether a resolver-chain failure surfaces as a 5xx, as SERVFAIL, or as a held-open connection is what the probe *concludes from*, so a change here can make it warn on a healthy setup or stay silent through a real outage. That is the probe lying rather than going quiet, and it must be verified by hand before merge.
+
+An endpoint that disappears entirely is the second kind: the watchdog URL in `blocky/config.yaml` would 404 and the Supervisor would restart the add-on in a loop. See ADR-0012.
 
 ## The merge gate
 
 - **Go** when `render-test` is green on the PR **and** the directed scan produced no un-mitigated Hold. A bump needing no adaptation merges as the bare one-liner.
-- **Hold** when the scan surfaces an un-absorbed behavioral change (see table), a change to a consumed API endpoint or response shape, or `render-test` is red.
+- **Hold** when the scan surfaces an un-absorbed behavioral change (see table), a change to how Blocky reports a resolver-chain failure or to an endpoint's existence, or `render-test` is red. A consumed response *shape* change is a note, not a Hold — see above for why the two differ.
 - A red `render-test` means a key we emit broke upstream. The fix is a companion template/schema/golden change — and it rides in the **same PR** as the pin bump, never a follow-up (ADR-0009). `blocky-dev/` is CI-generated post-merge; it is not part of the bump PR.
 
 ## Changelog and release

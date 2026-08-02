@@ -211,11 +211,11 @@ assert_classify 200 '{"responseType":"RESOLVED"}' inconclusive
 #
 # Could not connect at all (7 = refused, 6 = DNS, 0 = anything else that left us
 # without a status): Blocky is down or still starting, which is Blocky's own
-# logging to report, not an upstream verdict.
-assert_classify 000 '' unreachable
-assert_classify '' '' unreachable
-assert_classify 000 '' unreachable 7
-assert_classify 000 '' unreachable 6
+# logging to report and says nothing about the upstreams.
+assert_classify 000 '' inconclusive
+assert_classify '' '' inconclusive
+assert_classify 000 '' inconclusive 7
+assert_classify 000 '' inconclusive 6
 
 # Timed out (28) against a listener on 127.0.0.1, where a connection either
 # succeeds or is refused at once: Blocky accepted the query and never answered,
@@ -250,7 +250,7 @@ assert_split '' ' '
 for triple in \
     "$(printf '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}\n200')|0|resolved" \
     "$(printf 'query failed\n500')|0|failed" \
-    "$(printf '\n000')|7|unreachable" \
+    "$(printf '\n000')|7|inconclusive" \
     "$(printf '\n000')|28|failed"; do
     response="${triple%%|*}"
     want="${triple##*|}"
