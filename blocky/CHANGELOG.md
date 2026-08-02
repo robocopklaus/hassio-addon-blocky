@@ -284,7 +284,7 @@ Additional breaking changes:
 - Container image path: `ghcr.io/robocopklaus/hassio-addon-blocky-{arch}` → `ghcr.io/robocopklaus/hassio-addon-blocky/{arch}`
 - i386 architecture no longer supported
 
-## [0.3.0] and earlier
+## 0.3.0 and earlier
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
@@ -299,5 +299,4 @@ See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) f
 [3.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v0.3.0...v1.0.0
-[0.3.0]: https://github.com/robocopklaus/hassio-addon-blocky/releases/tag/v0.3.0
+[1.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/releases/tag/v1.0.0
