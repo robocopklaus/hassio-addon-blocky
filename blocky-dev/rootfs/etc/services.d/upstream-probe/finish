@@ -1,0 +1,27 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Handle upstream probe shutdown
+#
+# Deliberately NOT the policy in services.d/blocky/finish. That one halts the
+# whole add-on when Blocky dies, because without Blocky there is no add-on. This
+# one must never halt anything: the probe is a reporter (ADR-0012), and a
+# reporter that takes DNS down for the network when it itself breaks is strictly
+# worse than no reporter. Whatever happens here, Blocky keeps serving.
+#
+# s6 restarts a service that exits, which is what we want — a probe that died on
+# a transient error should come back. The sleep throttles that restart so a
+# permanent failure (a missing helper, a broken curl) costs one log line a
+# minute instead of a spin.
+# ==============================================================================
+
+declare APP_EXIT_CODE=${1}
+
+if [[ "${APP_EXIT_CODE}" -eq 0 ]] || [[ "${APP_EXIT_CODE}" -gt 256 ]]; then
+    # Clean exit or signal-derived (256 + signal, e.g. SIGTERM = 271): the
+    # add-on is shutting down, or the probe parked itself. Nothing to report.
+    exit 0
+fi
+
+bashio::log.warning "Upstream resolution probe exited unexpectedly (exit code ${APP_EXIT_CODE}); retrying in 60s."
+bashio::log.warning "DNS resolution is unaffected — only the reporting of upstream failures is."
+sleep 60

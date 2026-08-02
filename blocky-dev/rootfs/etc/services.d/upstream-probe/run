@@ -1,0 +1,134 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Upstream resolution probe
+#
+# Periodically asks the running Blocky to resolve a name and reports in the
+# add-on log when the upstreams stop answering — the only thing that notices
+# total resolver death, since the ADR-0002 core guard sees only that a resolver
+# is PRESENT in the rendered config.
+#
+# It is observability, not validation: it only ever logs. It never aborts the
+# add-on and never restarts Blocky, because an upstream that is down now may
+# answer a minute later, and DNS for the whole network must not hinge on that.
+# ADR-0012 has the full reasoning and the rejected alternatives; the comments
+# below cover only what is not obvious from the code.
+# ==============================================================================
+
+# shellcheck source=/dev/null
+source /usr/lib/blocky/upstream_probe.sh
+
+# Standard Mode renders the HTTP listener on 4000 unconditionally (the template
+# hardcodes it), so this address is a fact of the rendered config, not a guess.
+readonly API_BASE="http://127.0.0.1:4000"
+
+# Every 5 minutes: slow enough that the probe stays a rounding error in the
+# query log an operator reads, fast enough to name the cause of an outage long
+# before they finish checking their router. Two consecutive failures before
+# warning keeps a single dropped packet out of the log; re-warning after another
+# twelve failed probes (an hour, or a little over while probes are timing out)
+# means a log opened at any point during a long outage still explains itself.
+readonly PROBE_INTERVAL=300
+readonly FAILURE_THRESHOLD=2
+readonly REWARN_AFTER_FAILED_PROBES=12
+
+# How long one probe may wait for an answer. Deliberately well above the shipped
+# `upstreams.timeout` of 2s and above any latency a DNS client would sit through,
+# so hitting it means the resolver chain is stuck rather than merely slow — an
+# operator who raises upstreams.timeout past this has chosen a timeout no stub
+# resolver on their network will wait for either. The interval sleep runs after
+# the probe, so a probe that burns its whole budget stretches the cycle to 330s;
+# small enough that the cadence below is still accurate to within a few minutes.
+readonly PROBE_TIMEOUT=30
+
+# Warm-up: Blocky and this service start together, so the API is not up yet.
+# Poll briefly for it rather than let the first real probe wait a full interval.
+readonly WARMUP_INTERVAL=5
+readonly WARMUP_ATTEMPTS=24
+
+# Custom Config Mode owns the whole Blocky config, including whether there is an
+# HTTP listener at all and on which port. Probing a port we did not render would
+# report the operator's deliberate choice as a failure, so the probe stays out —
+# the same Standard-Mode-only boundary the format-coupled guards keep (ADR-0004),
+# for the same reason: we may only inspect what we generated.
+if bashio::config.true 'custom_config'; then
+    bashio::log.info "Upstream resolution probe is disabled in Custom Config Mode."
+    # s6 restarts a service that exits, so park instead of returning.
+    while true; do sleep 86400; done
+fi
+
+# One probe. Prints the verdict; see probe_classify for the four outcomes.
+probe_once() {
+    local name response curl_exit split
+    name="$(probe_query_name)"
+
+    # -s (not -sS): a connection error every interval while Blocky is down is
+    # noise, and the verdict already says so. -w appends the status code, which
+    # probe_split_response separates back out.
+    response="$(curl -s -m "${PROBE_TIMEOUT}" -X POST \
+        -H 'Content-Type: application/json' \
+        -d "{\"query\":\"${name}\",\"type\":\"A\"}" \
+        -w '\n%{http_code}' \
+        "${API_BASE}/api/query")"
+    # curl is the only command in that substitution, so this is its exit code.
+    # It is what tells a query Blocky accepted and never answered apart from
+    # Blocky not being there at all — see probe_classify.
+    curl_exit=$?
+
+    split="$(probe_split_response "${response}")"
+    probe_classify "${split%% *}" "${split#* }" "${curl_exit}"
+}
+
+warn_upstreams_failing() {
+    bashio::log.warning "Upstream DNS resolution is failing: a test query through Blocky reached none of the configured upstream resolvers."
+    bashio::log.warning "Clients will see DNS time out until this recovers. Check this machine's internet connection first, then the resolvers under Upstream DNS Servers -> groups -> default in the add-on options."
+    bashio::log.warning "Blocky keeps running and starts resolving again on its own as soon as an upstream answers."
+}
+
+for _ in $(seq "${WARMUP_ATTEMPTS}"); do
+    if curl -s -m 5 -o /dev/null "${API_BASE}/api/blocking/status"; then
+        break
+    fi
+    sleep "${WARMUP_INTERVAL}"
+done
+
+state=unknown
+consecutive_failures=0
+failed_probes_since_warning=0
+
+while true; do
+    case "$(probe_once)" in
+        resolved)
+            if [ "${state}" = "failing" ]; then
+                bashio::log.info "Upstream DNS resolution recovered."
+            elif [ "${state}" = "unknown" ]; then
+                bashio::log.info "Upstream DNS resolution verified."
+            fi
+            state=healthy
+            consecutive_failures=0
+            ;;
+        failed)
+            consecutive_failures=$((consecutive_failures + 1))
+            if [ "${state}" = "failing" ]; then
+                failed_probes_since_warning=$((failed_probes_since_warning + 1))
+                if [ "${failed_probes_since_warning}" -ge "${REWARN_AFTER_FAILED_PROBES}" ]; then
+                    failed_probes_since_warning=0
+                    warn_upstreams_failing
+                fi
+            elif [ "${consecutive_failures}" -ge "${FAILURE_THRESHOLD}" ]; then
+                state=failing
+                failed_probes_since_warning=0
+                warn_upstreams_failing
+            fi
+            ;;
+        *)
+            # inconclusive: Blocky answered locally, or is not answering at all.
+            # Not a statement about the upstreams, so it neither moves the state
+            # nor warns. The failure run does reset, though: "two consecutive
+            # failures" has to mean two in a row with nothing in between, or one
+            # failure now and one next week would eventually warn.
+            consecutive_failures=0
+            ;;
+    esac
+
+    sleep "${PROBE_INTERVAL}"
+done
