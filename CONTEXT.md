@@ -48,6 +48,14 @@ _Avoid_: config upgrade, options rewrite
 An add-on option kept in the schema past its replacement purely so HA does not strip a user's persisted value, and translated by the template into its current equivalent. Removing it from the schema is a breaking change that silently deletes that setting for existing users.
 _Avoid_: legacy option, old key
 
+**Default pinning**:
+The freezing of an option's default into an operator's own stored configuration at their first save, after which the shipped default no longer reaches them. The reason a changed default is not a way to ship a behaviour change to existing installs.
+_Avoid_: sticky default, cached default
+
+**Value owner** (see ADR-0011):
+Who decides an option's effective value once the operator leaves it alone — the **operator** (the shipped value is theirs from the first save onward and final), **Blocky** (the option ships empty and the key is left out, so upstream decides), or the **add-on** (the option ships empty and we supply the value, so we can still change it). Chosen when the option is introduced; not revisable afterwards.
+_Avoid_: default strategy, sentinel
+
 ### Failure policy (see ADR-0002)
 
 **Core feature**:
