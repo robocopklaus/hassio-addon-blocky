@@ -1,6 +1,6 @@
 # Blocky Home Assistant Add-on
 
-A containerized integration layer that translates Home Assistant add-on options into Blocky's native YAML. The domain language here is about *that translation* — modes, rendering, and how invalid input is handled — not about DNS resolution itself (that's Blocky's domain, see the upstream Blocky docs).
+A containerized integration layer that translates Home Assistant add-on options into Blocky's native YAML. The domain language here is about *that translation* — modes, rendering, and how invalid input is handled — not about DNS resolution itself (that's Blocky's domain, see the upstream Blocky docs). The add-on's output is artifacts others read: it exposes, and never pushes — it holds no outward connection and owns no state in another system's registry (ADR-0013).
 
 ## Language
 
@@ -69,6 +69,12 @@ _Avoid_: optional feature, secondary feature
 **Probe** (see ADR-0012):
 The running check that the configured upstreams still *answer* — a periodic query through Blocky's `/api/query`, reported in the log and nowhere else. Distinct from a Guard in both layer and authority: a guard reads the rendered config before start and may abort, a probe observes the live system afterwards and may only report. Reachability is observed, never enforced.
 _Avoid_: health check, upstream guard, monitor
+
+### Runtime surface (see ADR-0013)
+
+**Runtime fact**:
+A fact about the add-on's own running state that no rendered config can express — whether the configured upstreams still answer. The add-on's obligation is to make it *readable* and ends there; consuming it — as a Home Assistant entity, an automation trigger, an alert — belongs to whoever reads it. A Runtime fact is published as a derived state, never as a mirror of an internal variable: a reader that cannot see the add-on log must not be told `healthy` when the truth is *unknown*.
+_Avoid_: metric, telemetry, sensor, status
 
 ### Blocking vocabulary
 
