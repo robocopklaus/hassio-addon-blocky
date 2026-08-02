@@ -98,4 +98,4 @@ LABEL \
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD blocky blocking status || exit 1
+    CMD ["blocky", "blocking", "status"]
