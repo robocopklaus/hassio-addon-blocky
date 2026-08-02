@@ -288,7 +288,10 @@ Additional breaking changes:
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
-[4.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.1...v4.2.0
+[5.2.1]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v5.2.0...v5.2.1
+[5.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v5.1.0...v5.2.0
+[5.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v5.0.0...v5.1.0
+[5.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.1...v5.0.0
 [4.1.1]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...v4.0.0
