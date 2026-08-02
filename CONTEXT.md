@@ -66,6 +66,10 @@ _Avoid_: required feature, essential feature
 A feature DNS resolution survives without (e.g. `https`/DoH, `prometheus`, `redis`, `query_log`, `blocking`). A broken side feature degrades: the template omits it so the rendered YAML stays valid, and a guard warns.
 _Avoid_: optional feature, secondary feature
 
+**Probe** (see ADR-0012):
+The running check that the configured upstreams still *answer* — a periodic query through Blocky's `/api/query`, reported in the log and nowhere else. Distinct from a Guard in both layer and authority: a guard reads the rendered config before start and may abort, a probe observes the live system afterwards and may only report. Reachability is observed, never enforced.
+_Avoid_: health check, upstream guard, monitor
+
 ### Blocking vocabulary
 
 **Denylist** / **Allowlist**:

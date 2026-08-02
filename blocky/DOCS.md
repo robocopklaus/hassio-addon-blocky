@@ -505,6 +505,23 @@ If all upstream resolvers are unreachable, startup behavior depends on upstream 
 
 Use `fast` for unstable WAN links and verify behavior in your environment.
 
+### Upstream resolution probe
+
+Every 5 minutes the add-on asks Blocky to resolve a throwaway name. It writes to the add-on log only when the answer *changes* — a working setup stays quiet after the first line. This exists because nothing else notices when your upstream resolvers stop answering: the add-on's startup check confirms a resolver is *configured*, not that it *replies*, and the Home Assistant watchdog polls Blocky's blocking status, which stays green with no working resolver. Without the probe, a total upstream outage looks like a healthy add-on and shows up only as clients timing out.
+
+What you will see in the log:
+
+- `Upstream DNS resolution verified.` once, shortly after start
+- `Upstream DNS resolution is failing: …` after two failed probes in a row, so roughly 5 to 10 minutes into an outage, then again after every hour it continues
+- `Upstream DNS resolution recovered.` when an upstream answers again
+
+The warning is a report, not a fault in the add-on. Blocky keeps running and resolves again on its own as soon as an upstream replies — the add-on never restarts or stops itself over it, because an upstream that is down now is often back a minute later. If the warning persists, check this machine's internet connection first, then the resolvers under **Upstream DNS Servers → groups → default**.
+
+Two things worth knowing:
+
+- The probe queries a random name ending in `.blocky-addon-probe`, which does not exist and is answered `NXDOMAIN` by the DNS root servers. It has to be a fresh name each time, or Blocky's cache would answer it and prove nothing. If you use query logging, these entries are the probe — one per 5 minutes.
+- The probe runs in Standard Mode only. In [Custom Config Mode](#custom-config-mode) you decide whether Blocky has an HTTP API and on which port, so the add-on does not assume one is there; it logs that the probe is disabled and stays out of the way.
+
 ### Blocklist source freshness
 
 Default blocklists are curated for reliability. The `sysctl.org/cameleon` source was removed because maintenance status could not be confirmed.

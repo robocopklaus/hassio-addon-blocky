@@ -163,6 +163,111 @@ for unsafe in "/config/../secrets" "/etc/passwd" "../x" "/configfoo"; do
     fi
 done
 
+# ---- upstream_probe.sh -----------------------------------------------------
+#
+# The probe's pure classifier: it turns one /api/query exchange into a verdict
+# about the UPSTREAMS, never about the add-on. It is not format-coupled to the
+# rendered config (it reads Blocky's API), but it is coupled to that response
+# shape, so it is pinned here the same way. See ADR-0012.
+
+# shellcheck source=blocky/rootfs/usr/lib/blocky/upstream_probe.sh
+source "${ROOT}/blocky/rootfs/usr/lib/blocky/upstream_probe.sh"
+
+assert_classify() {
+    local status="$1" body="$2" want="$3" got
+    got="$(probe_classify "${status}" "${body}")"
+    if [ "${got}" = "${want}" ]; then
+        pass "classify ${status} ${body:-<empty>} -> ${got}"
+    else
+        bad "classify ${status} ${body:-<empty>} -> ${got}, want ${want}"
+    fi
+}
+
+# An upstream answered — NXDOMAIN for the probe's nonexistent name is exactly
+# the healthy case, and NOERROR is accepted too so the verdict never depends on
+# the probe name staying unresolvable.
+assert_classify 200 '{"reason":"","response":"","responseType":"RESOLVED","returnCode":"NXDOMAIN"}' resolved
+assert_classify 200 '{"reason":"","response":"","responseType":"RESOLVED","returnCode":"NOERROR"}' resolved
+
+# No upstream answered. Blocky's API turns a resolver-chain error into a 500,
+# and a SERVFAIL/BOGUS body is the same failure seen from the DNS side.
+assert_classify 500 'query failed' failed
+assert_classify 502 '' failed
+assert_classify 200 '{"responseType":"RESOLVED","returnCode":"SERVFAIL"}' failed
+assert_classify 200 '{"responseType":"BOGUS","returnCode":"SERVFAIL"}' failed
+
+# Answered locally, so it says nothing about the upstreams: never warn on these.
+# CONDITIONAL belongs here, not with the healthy cases: a conditional upstream
+# answering proves nothing about the default group the probe watches.
+for local_type in CACHED BLOCKED FILTERED NOTFQDN SPECIAL CUSTOMDNS HOSTSFILE SYNTHESIZED REBIND CONDITIONAL; do
+    assert_classify 200 "{\"responseType\":\"${local_type}\",\"returnCode\":\"NOERROR\"}" inconclusive
+done
+assert_classify 400 'unknown query type' inconclusive
+assert_classify 200 'not json at all' inconclusive
+assert_classify 200 '{"responseType":"RESOLVED"}' inconclusive
+
+# curl writes 000 when it never got an HTTP response: Blocky is down or still
+# starting, which is not an upstream verdict.
+assert_classify 000 '' unreachable
+assert_classify '' '' unreachable
+
+# The curl -w split: status after the last newline, everything before it the
+# body. This is what feeds probe_classify at runtime, so it is pinned here
+# rather than left to the service loop.
+assert_split() {
+    local response="$1" want="$2" got
+    got="$(probe_split_response "${response}")"
+    if [ "${got}" = "${want}" ]; then
+        pass "split $(printf '%q' "${response}") -> $(printf '%q' "${got}")"
+    else
+        bad "split $(printf '%q' "${response}") -> $(printf '%q' "${got}"), want $(printf '%q' "${want}")"
+    fi
+}
+assert_split "$(printf '{"returnCode":"NXDOMAIN"}\n200')" '200 {"returnCode":"NXDOMAIN"}'
+assert_split "$(printf 'query failed for x\n500')" '500 query failed for x'
+assert_split "$(printf '\n000')" '000 '
+assert_split '' ' '
+
+# A split response must survive the round trip into a verdict unchanged — this
+# is the seam the service loop crosses, so exercise it end to end.
+for pair in \
+    "$(printf '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}\n200')|resolved" \
+    "$(printf 'query failed\n500')|failed" \
+    "$(printf '\n000')|unreachable"; do
+    response="${pair%|*}"
+    want="${pair##*|}"
+    split="$(probe_split_response "${response}")"
+    got="$(probe_classify "${split%% *}" "${split#* }")"
+    if [ "${got}" = "${want}" ]; then
+        pass "split+classify -> ${got}"
+    else
+        bad "split+classify -> ${got}, want ${want}"
+    fi
+done
+
+# The probe name must be a two-label name (so fqdn_only cannot reject it) under
+# a nonexistent TLD, and must differ per call so Blocky's cache is never hit.
+name_a="$(probe_query_name)"
+name_b="$(probe_query_name)"
+if [ "${name_a}" != "${name_b}" ]; then
+    pass "probe_query_name varies per call"
+else
+    bad "probe_query_name repeated itself: ${name_a}"
+fi
+if [ "${name_a%.*}" != "${name_a}" ] && [ -n "${name_a%%.*}" ]; then
+    pass "probe_query_name is multi-label: ${name_a}"
+else
+    bad "probe_query_name is not multi-label: ${name_a}"
+fi
+case "${name_a}" in
+    *.blocky-addon-probe) pass "probe_query_name uses the self-identifying suffix" ;;
+    *) bad "probe_query_name suffix unexpected: ${name_a}" ;;
+esac
+case "${name_a}" in
+    *[!a-z0-9.-]*) bad "probe_query_name has non-hostname characters: ${name_a}" ;;
+    *) pass "probe_query_name is hostname-safe" ;;
+esac
+
 if [ "${fail}" -eq 0 ]; then
     echo "All guard checks passed."
 else
