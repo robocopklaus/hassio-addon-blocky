@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [5.2.1]
+## [5.2.1] - 2026-08-02
+
+### Added
+
+- A **How configuration works** section at the top of the add-on documentation: how the options form maps onto Blocky's YAML, Standard Mode vs. Custom Config Mode, which options are genuinely required, and how to find a given Blocky option in the add-on (#304)
 
 ### Fixed
 
