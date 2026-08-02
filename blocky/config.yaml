@@ -159,7 +159,7 @@ schema:
           - str?
   filtering:
     query_types:
-      - str
+      - str?
   fqdn_only:
     enable: bool?
   custom_dns:
@@ -186,17 +186,17 @@ schema:
   dns64:
     enable: bool?
     prefixes:
-      - str
+      - str?
     exclusion_set:
-      - str
+      - str?
   rebinding_protection:
     enable: bool?
     allowed_domains:
-      - str
+      - str?
   client_lookup:
     upstream: str?
     single_name_order:
-      - match(^[1-9][0-9]*$)
+      - match(^[1-9][0-9]*$)?
     clients:
       - name: str
         addresses:
@@ -237,7 +237,7 @@ schema:
     prefetch_max_items_count: int(0,)?
     cache_time_negative: str?
     exclude:
-      - str
+      - str?
   redis:
     address: str?
     username: str?
@@ -267,7 +267,7 @@ schema:
     creation_attempts: int(1,)?
     creation_cooldown: str?
     fields:
-      - list(clientIP|clientName|responseReason|responseAnswer|question|duration)
+      - list(clientIP|clientName|responseReason|responseAnswer|question|duration)?
     flush_interval: str?
   log:
     level: list(trace|debug|info|warn|error)?
