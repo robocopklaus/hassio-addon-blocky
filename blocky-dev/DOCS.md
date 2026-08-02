@@ -2,6 +2,44 @@
 
 This document provides detailed configuration reference and advanced usage examples for the Blocky Home Assistant Add-on. For installation instructions and basic usage, see [README.md](README.md).
 
+## How configuration works
+
+**You are not editing a Blocky configuration file.** The add-on options — whether you set them in the form or in Home Assistant's YAML editor — are a Home Assistant options object. On every start, the add-on renders them into Blocky's native YAML at `/etc/blocky/config.yml`, and that generated file is the only thing Blocky ever reads:
+
+```text
+add-on options                        rendered Blocky config
+------------------------------------  ------------------------------------
+upstreams:                            upstreams:
+  groups:                               groups:
+    - name: default                       "default":
+      resolvers:                            - "tcp-tls:one.one.one.one"
+        - tcp-tls:one.one.one.one       init:
+  init_strategy: blocking                 strategy: "blocking"
+```
+
+The shape differs for two reasons. Standard Mode is a **curated** surface: it exposes the Blocky options that are understandable and broadly useful in Home Assistant, not a 1:1 mirror of Blocky's configuration format (see [ADR-0006](https://github.com/robocopklaus/hassio-addon-blocky/blob/main/docs/adr/0006-standard-mode-is-curated.md)). And Home Assistant's add-on schema is a fixed, typed key/value structure, which cannot express everything Blocky's free-form YAML can. One consequence worth knowing: **YAML anchors do not survive** in the add-on options. Home Assistant stores the parsed object, not the text you typed, so anchors expand into duplicated literals the next time the editor renders. In Custom Config Mode you write real YAML that Blocky parses directly, and anchors behave normally there.
+
+### Standard Mode vs. Custom Config Mode
+
+|                          | Standard Mode                              | Custom Config Mode                                 |
+| ------------------------ | ------------------------------------------ | -------------------------------------------------- |
+| Where you edit           | The add-on's Configuration tab             | `config.yml` in this add-on's `/addon_configs/` folder |
+| Blocky coverage          | The curated subset documented below        | Everything Blocky supports                          |
+| What happens to UI values | Rendered into the Blocky config on each start | Ignored entirely; rendering is bypassed          |
+| Who it's for             | Most installations                         | Regex rules, per-client policies, anything uncurated |
+
+See [Custom Config Mode](#custom-config-mode) for how to enable and use it.
+
+### What's actually required
+
+**"Required" means the key must be present — not that you must fill it in.** An empty string, an empty list, or a zero all satisfy Home Assistant's check, so a required field you have never touched is not doing anything. What is genuinely enforced is the required keys *inside* a list entry — a denylist's `name`, a bootstrap DNS `upstream`, a Custom DNS `hostname` — because those are map keys in Blocky's own YAML. At the top level, nothing must be set.
+
+**Deleting settings you don't use won't shrink your configuration.** Home Assistant merges this add-on's defaults back underneath your saved options every time it reads them, so a deleted key reappears — and for whole groups and lists it is refused outright with `Missing option '<key>' in <group>`, because Home Assistant's schema language has no way to mark a group optional. Leave the defaults alone. If the size of the configuration is what bothers you, that is what Custom Config Mode is for.
+
+### Finding a Blocky option in the add-on
+
+Search the [Configuration Reference](#configuration-reference) below for the Blocky option's name — most map onto a UI field with a recognisable label. If it is not there, it was not curated into Standard Mode, and Custom Config Mode is where it belongs; [ADR-0006](https://github.com/robocopklaus/hassio-addon-blocky/blob/main/docs/adr/0006-standard-mode-is-curated.md) describes the criteria used to decide. Upstream option semantics are documented in the [Blocky configuration reference](https://0xerr0r.github.io/blocky/latest/configuration/).
+
 ## Configuration Reference
 
 ### Upstream DNS Servers
@@ -440,6 +478,12 @@ DNS amplification is a type of DDoS attack where an attacker sends small DNS que
 **Note:** Home Assistant's Docker network architecture provides a layer of isolation, and the add-on's port mappings are typically only accessible from the local network. However, network configurations vary, and it is your responsibility to ensure port 53 is not exposed to the internet.
 
 ## Troubleshooting
+
+### Saving options fails with a missing-option error
+
+Home Assistant refuses to save with `Missing option '<key>' in <group>` if you delete a whole settings group or list from the add-on's YAML editor. Its schema language has no way to mark a group as optional, so every group this add-on defines must be present. Put the key back — nothing is broken.
+
+Deleting settings you don't use won't shrink your configuration in any case: Home Assistant merges the add-on's defaults back underneath your saved options every time it reads them. See [What's actually required](#whats-actually-required) for why, and [Custom Config Mode](#custom-config-mode) if a smaller configuration file is what you're after.
 
 ### Port 53 conflict (systemd-resolved)
 
