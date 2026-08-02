@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.2.1] - 2026-08-02
+
+### Added
+
+- A **How configuration works** section at the top of the add-on documentation: how the options form maps onto Blocky's YAML, Standard Mode vs. Custom Config Mode, which options are genuinely required, and how to find a given Blocky option in the add-on (#304)
+
+### Fixed
+
+- **Outgoing IP Version** now appears at the top of the add-on configuration form instead of sitting unlabelled between the **Upstream DNS Servers** and **Bootstrap DNS** groups, where it read as part of neither (#299)
+- Seven optional list options are no longer marked required in the configuration schema, so clearing them in the YAML editor is no longer refused with `Missing option '<key>' in <group>`: `filtering.query_types`, `dns64.prefixes`, `dns64.exclusion_set`, `rebinding_protection.allowed_domains`, `caching.exclude`, `client_lookup.single_name_order` and `query_log.fields`. Home Assistant still re-merges the defaults on the next page load, so a cleared key reappears there (#308)
+
 ## [5.2.0] - 2026-07-31
 
 ### Changed
@@ -273,11 +284,14 @@ Additional breaking changes:
 - Container image path: `ghcr.io/robocopklaus/hassio-addon-blocky-{arch}` → `ghcr.io/robocopklaus/hassio-addon-blocky/{arch}`
 - i386 architecture no longer supported
 
-## [0.3.0] and earlier
+## 0.3.0 and earlier
 
 See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) for previous releases.
 
-[4.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.1...v4.2.0
+[5.2.1]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v5.2.0...v5.2.1
+[5.2.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v5.1.0...v5.2.0
+[5.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v5.0.0...v5.1.0
+[5.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.1...v5.0.0
 [4.1.1]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.2.0...v4.0.0
@@ -285,5 +299,4 @@ See [git history](https://github.com/robocopklaus/hassio-addon-blocky/commits) f
 [3.1.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/compare/v0.3.0...v1.0.0
-[0.3.0]: https://github.com/robocopklaus/hassio-addon-blocky/releases/tag/v0.3.0
+[1.0.0]: https://github.com/robocopklaus/hassio-addon-blocky/releases/tag/v1.0.0
