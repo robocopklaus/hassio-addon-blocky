@@ -27,7 +27,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
 
       - name: Check config contracts
         run: node scripts/check-config-contract.mjs
@@ -47,7 +47,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
           cache: pnpm
 
       - name: Install dependencies
