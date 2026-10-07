@@ -13,7 +13,7 @@ ARG BUILD_ARCH
 # renovate: datasource=github-releases depName=0xERR0R/blocky
 ARG BLOCKY_VERSION=v0.34.0
 # renovate: datasource=github-releases depName=home-assistant/tempio
-ARG TEMPIO_VERSION=2024.11.2
+ARG TEMPIO_VERSION=2026.07.0
 # IMPORTANT: Tempio does not publish checksums; update all hashes when
 # TEMPIO_VERSION changes (including Renovate bumps).
 # Example: curl -sSLf "https://github.com/home-assistant/tempio/releases/download/${TEMPIO_VERSION}/tempio_<arch>" | sha256sum
