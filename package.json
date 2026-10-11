@@ -11,6 +11,7 @@
     "check:contracts": "node scripts/check-config-contract.mjs",
     "check:guards": "bash scripts/test-guards.sh",
     "check:render": "node scripts/render-test/run.mjs",
+    "check:release-notes": "node scripts/check-release-notes.mjs",
     "render:update": "node scripts/render-test/run.mjs --update",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"

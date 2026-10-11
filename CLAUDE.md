@@ -25,6 +25,8 @@ pnpm check:contracts    # static three-file parity (options/schema/translations/
 pnpm check:guards       # runtime guard functions vs committed render goldens
 pnpm check:render       # real tempio+blocky render vs goldens; Linux only
                         # (on macOS it refuses with a Docker hint — use `pnpm check`)
+pnpm check:release-notes # release tooling: preset/writer render real notes
+                         # (not part of `pnpm check` — release tooling, not the pipeline)
 
 # Release (semantic-release via pnpm)
 pnpm release:dry-run    # preview what would be released
@@ -100,6 +102,8 @@ Automated checks guard the translation pipeline — run all three with `pnpm che
 - **Config contract** (`scripts/check-config-contract.mjs`) — static three-file parity: every top-level option exists in the schema and translations and is referenced by the template, enum defaults are valid, and the deprecation registry holds (ADR-0005).
 - **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; on macOS `pnpm check` dispatches it into a throwaway Docker container.
 - **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004).
+
+Separately, the **release-notes smoke test** (`scripts/check-release-notes.mjs`, `pnpm check:release-notes`, CI job `Release Notes`) renders synthetic commits through the real release-notes-generator + conventionalcommits preset, catching a preset major that outpaces the bundled writer (#272, #274). It guards release tooling, so it stays outside the `pnpm check` aggregate (ADR-0008 scope).
 
 `pnpm check` runs contracts + guards always and gates render on their success; it exits non-zero if render *cannot* run (e.g. Docker down off-Linux) so a green result never hides an unverified render. CI (`lint.yml`) runs the three as parallel jobs rather than the aggregate — see ADR-0008.
 
