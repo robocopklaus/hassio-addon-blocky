@@ -210,7 +210,7 @@ this was not verified against a running instance.
 
 **The ADR's claim is confirmed, with one refinement about *when* the drop becomes permanent.**
 
-`CONTEXT.md` and
+`GLOSSARY.md` and
 [ADR-0005](../adr/0005-passive-config-migration-via-schema-retention.md) state: *"on a schema change
 it keeps persisted values for keys still in the schema and silently drops the rest"*, and *"the
 add-on cannot safely rewrite `/data/options.json` because HA owns that file"*. Both hold.
@@ -314,7 +314,7 @@ observed on a live instance.
 5. **The render harness's fixture merge matches HA's semantics** — dicts recurse, lists replace
    (`scripts/render-test/run.mjs`, `deepMerge`) — which is the same rule as `_OPTIONS_MERGER`. It does
    *not* replicate HA's schema filtering, which ADR-0005 records as a deliberate rejection.
-6. **Nothing contradicts `CONTEXT.md`.** The one refinement is timing: the "silent drop" is a filter
+6. **Nothing contradicts `GLOSSARY.md`.** The one refinement is timing: the "silent drop" is a filter
    applied at read/write, not a destructive migration at update — the persisted value lingers in the
    Supervisor's store until the operator's next save.
 
