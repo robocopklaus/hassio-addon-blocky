@@ -23,13 +23,11 @@ readonly API_BASE="http://127.0.0.1:4000"
 
 # Every 5 minutes: slow enough that the probe stays a rounding error in the
 # query log an operator reads, fast enough to name the cause of an outage long
-# before they finish checking their router. Two consecutive failures before
-# warning keeps a single dropped packet out of the log; re-warning after another
-# twelve failed probes (an hour, or a little over while probes are timing out)
-# means a log opened at any point during a long outage still explains itself.
+# before they finish checking their router. When to warn, recover and re-warn
+# is the probe module's (probe_observe); at this interval its re-warn after
+# twelve failed probes comes round once an hour, or a little over while probes
+# are timing out.
 readonly PROBE_INTERVAL=300
-readonly FAILURE_THRESHOLD=2
-readonly REWARN_AFTER_FAILED_PROBES=12
 
 # How long one probe may wait for an answer. Deliberately well above the shipped
 # `upstreams.timeout` of 2s and above any latency a DNS client would sit through,
@@ -56,28 +54,6 @@ if bashio::config.true 'custom_config'; then
     while true; do sleep 86400; done
 fi
 
-# One probe. Prints the verdict; see probe_classify for the four outcomes.
-probe_once() {
-    local name response curl_exit split
-    name="$(probe_query_name)"
-
-    # -s (not -sS): a connection error every interval while Blocky is down is
-    # noise, and the verdict already says so. -w appends the status code, which
-    # probe_split_response separates back out.
-    response="$(curl -s -m "${PROBE_TIMEOUT}" -X POST \
-        -H 'Content-Type: application/json' \
-        -d "{\"query\":\"${name}\",\"type\":\"A\"}" \
-        -w '\n%{http_code}' \
-        "${API_BASE}/api/query")"
-    # curl is the only command in that substitution, so this is its exit code.
-    # It is what tells a query Blocky accepted and never answered apart from
-    # Blocky not being there at all — see probe_classify.
-    curl_exit=$?
-
-    split="$(probe_split_response "${response}")"
-    probe_classify "${split%% *}" "${split#* }" "${curl_exit}"
-}
-
 warn_upstreams_failing() {
     bashio::log.warning "Upstream DNS resolution is failing: a test query through Blocky reached none of the configured upstream resolvers."
     bashio::log.warning "Clients will see DNS time out until this recovers. Check this machine's internet connection first, then the resolvers under Upstream DNS Servers -> groups -> default in the add-on options."
@@ -91,43 +67,15 @@ for _ in $(seq "${WARMUP_ATTEMPTS}"); do
     sleep "${WARMUP_INTERVAL}"
 done
 
-state=unknown
-consecutive_failures=0
-failed_probes_since_warning=0
+probe_reset
 
 while true; do
-    case "$(probe_once)" in
-        resolved)
-            if [ "${state}" = "failing" ]; then
-                bashio::log.info "Upstream DNS resolution recovered."
-            elif [ "${state}" = "unknown" ]; then
-                bashio::log.info "Upstream DNS resolution verified."
-            fi
-            state=healthy
-            consecutive_failures=0
-            ;;
-        failed)
-            consecutive_failures=$((consecutive_failures + 1))
-            if [ "${state}" = "failing" ]; then
-                failed_probes_since_warning=$((failed_probes_since_warning + 1))
-                if [ "${failed_probes_since_warning}" -ge "${REWARN_AFTER_FAILED_PROBES}" ]; then
-                    failed_probes_since_warning=0
-                    warn_upstreams_failing
-                fi
-            elif [ "${consecutive_failures}" -ge "${FAILURE_THRESHOLD}" ]; then
-                state=failing
-                failed_probes_since_warning=0
-                warn_upstreams_failing
-            fi
-            ;;
-        *)
-            # inconclusive: Blocky answered locally, or is not answering at all.
-            # Not a statement about the upstreams, so it neither moves the state
-            # nor warns. The failure run does reset, though: "two consecutive
-            # failures" has to mean two in a row with nothing in between, or one
-            # failure now and one next week would eventually warn.
-            consecutive_failures=0
-            ;;
+    # Not in a subshell: probe_observe advances the module's state in this shell.
+    probe_observe "$(probe_once "${API_BASE}" "${PROBE_TIMEOUT}")"
+    case "${PROBE_ACTION}" in
+        verified) bashio::log.info "Upstream DNS resolution verified." ;;
+        recovered) bashio::log.info "Upstream DNS resolution recovered." ;;
+        warn) warn_upstreams_failing ;;
     esac
 
     sleep "${PROBE_INTERVAL}"

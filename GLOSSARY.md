@@ -67,7 +67,7 @@ A feature DNS resolution survives without (e.g. `https`/DoH, `prometheus`, `redi
 _Avoid_: optional feature, secondary feature
 
 **Probe** (see ADR-0012):
-The running check that the configured upstreams still *answer* — a periodic query through Blocky's `/api/query`, reported in the log and nowhere else. Distinct from a Guard in both layer and authority: a guard reads the rendered config before start and may abort, a probe observes the live system afterwards and may only report. Reachability is observed, never enforced.
+The running check that the configured upstreams still *answer* — a periodic query through Blocky's `/api/query`, reported in the log and nowhere else. Distinct from a Guard in both layer and authority: a guard reads the rendered config before start and may abort, a probe observes the live system afterwards and may only report. Reachability is observed, never enforced. What the probe has told the log — its *level* — freezes when a probe is inconclusive, because the log is read next to Blocky's own errors; that level is therefore not a Runtime fact and must never be published as one.
 _Avoid_: health check, upstream guard, monitor
 
 ### Runtime surface (see ADR-0013)

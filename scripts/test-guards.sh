@@ -165,10 +165,11 @@ done
 
 # ---- upstream_probe.sh -----------------------------------------------------
 #
-# The probe's pure classifier: it turns one /api/query exchange into a verdict
-# about the UPSTREAMS, never about the add-on. It is not format-coupled to the
-# rendered config (it reads Blocky's API), but it is coupled to that response
-# shape, so it is pinned here the same way. See ADR-0012.
+# The probe module: the classifier that turns one /api/query exchange into a
+# verdict about the UPSTREAMS (never about the add-on), the exchange itself, and
+# the step that turns a run of verdicts into the log's level and actions. It is
+# not format-coupled to the rendered config (it reads Blocky's API), but it is
+# coupled to that response shape, so it is pinned here the same way. ADR-0012.
 
 # shellcheck source=blocky/rootfs/usr/lib/blocky/upstream_probe.sh
 source "${ROOT}/blocky/rootfs/usr/lib/blocky/upstream_probe.sh"
@@ -228,42 +229,59 @@ assert_classify '' '' failed 28
 assert_classify 200 '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}' resolved 0
 assert_classify 500 'query failed' failed 0
 
-# The curl -w split: status after the last newline, everything before it the
-# body. This is what feeds probe_classify at runtime, so it is pinned here
-# rather than left to the service loop.
-assert_split() {
-    local response="$1" want="$2" got
-    got="$(probe_split_response "${response}")"
+# probe_once is the exchange the service loop runs, crossed through the same
+# interface: curl is shadowed by a shell function that replays what the real
+# curl -w '\n%{http_code}' writes, plus its exit code. Nothing re-types the
+# split between curl's output and probe_classify; that stays inside the module.
+FAKE_CURL_OUTPUT=""
+FAKE_CURL_EXIT=0
+curl() {
+    printf '%s\n' "$*" >"${tmp}/curl-args"
+    printf '%s' "${FAKE_CURL_OUTPUT}"
+    return "${FAKE_CURL_EXIT}"
+}
+
+assert_probe_once() {
+    local output="$1" curl_exit="$2" want="$3" got
+    FAKE_CURL_OUTPUT="${output}"
+    FAKE_CURL_EXIT="${curl_exit}"
+    got="$(probe_once "http://127.0.0.1:4000" 30)"
     if [ "${got}" = "${want}" ]; then
-        pass "split $(printf '%q' "${response}") -> $(printf '%q' "${got}")"
+        pass "probe_once $(printf '%q' "${output}") (curl ${curl_exit}) -> ${got}"
     else
-        bad "split $(printf '%q' "${response}") -> $(printf '%q' "${got}"), want $(printf '%q' "${want}")"
+        bad "probe_once $(printf '%q' "${output}") (curl ${curl_exit}) -> ${got}, want ${want}"
     fi
 }
-assert_split "$(printf '{"returnCode":"NXDOMAIN"}\n200')" '200 {"returnCode":"NXDOMAIN"}'
-assert_split "$(printf 'query failed for x\n500')" '500 query failed for x'
-assert_split "$(printf '\n000')" '000 '
-assert_split '' ' '
 
-# A split response must survive the round trip into a verdict unchanged — this
-# is the seam the service loop crosses, so exercise it end to end.
-for triple in \
-    "$(printf '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}\n200')|0|resolved" \
-    "$(printf 'query failed\n500')|0|failed" \
-    "$(printf '\n000')|7|inconclusive" \
-    "$(printf '\n000')|28|failed"; do
-    response="${triple%%|*}"
-    want="${triple##*|}"
-    curl_exit="${triple#*|}"
-    curl_exit="${curl_exit%|*}"
-    split="$(probe_split_response "${response}")"
-    got="$(probe_classify "${split%% *}" "${split#* }" "${curl_exit}")"
-    if [ "${got}" = "${want}" ]; then
-        pass "split+classify (curl ${curl_exit}) -> ${got}"
-    else
-        bad "split+classify (curl ${curl_exit}) -> ${got}, want ${want}"
-    fi
-done
+assert_probe_once "$(printf '{"responseType":"RESOLVED","returnCode":"NXDOMAIN"}\n200')" 0 resolved
+assert_probe_once "$(printf 'query failed\n500')" 0 failed
+# The status is taken after the LAST newline, so a multi-line body still splits.
+assert_probe_once "$(printf 'query\nfailed\n500')" 0 failed
+assert_probe_once "$(printf '\n000')" 7 inconclusive
+assert_probe_once "$(printf '\n000')" 28 failed
+# curl produced nothing at all, not even a status.
+assert_probe_once '' 7 inconclusive
+assert_probe_once '' 28 failed
+
+# The exchange it makes: the query endpoint under the given base, the given
+# timeout as curl's budget, and a fresh probe name in the request body.
+FAKE_CURL_OUTPUT="$(printf '\n000')"
+FAKE_CURL_EXIT=7
+probe_once "http://127.0.0.1:4000" 30 >/dev/null
+curl_args="$(cat "${tmp}/curl-args")"
+case "${curl_args}" in
+    *" http://127.0.0.1:4000/api/query") pass "probe_once posts to <base>/api/query" ;;
+    *) bad "probe_once request target unexpected: ${curl_args}" ;;
+esac
+case "${curl_args}" in
+    *"-m 30 "*) pass "probe_once passes the timeout to curl" ;;
+    *) bad "probe_once did not pass the timeout: ${curl_args}" ;;
+esac
+case "${curl_args}" in
+    *'"query":"p'*'.blocky-addon-probe"'*) pass "probe_once queries a fresh probe name" ;;
+    *) bad "probe_once request body unexpected: ${curl_args}" ;;
+esac
+unset -f curl
 
 # The probe name must be a two-label name (so fqdn_only cannot reject it) under
 # a nonexistent TLD, and must differ per call so Blocky's cache is never hit.
@@ -287,6 +305,63 @@ case "${name_a}" in
     *[!a-z0-9.-]*) bad "probe_query_name has non-hostname characters: ${name_a}" ;;
     *) pass "probe_query_name is hostname-safe" ;;
 esac
+
+# probe_observe: the ADR-0012 rules the service loop used to hold as locals.
+# Each sequence starts from a fresh probe_reset and feeds verdicts in order;
+# the actions it reports are what the loop turns into log lines.
+assert_observe() {
+    local desc="$1" verdicts="$2" want_actions="$3" want_level="$4" verdict actions=""
+    probe_reset
+    for verdict in ${verdicts}; do
+        probe_observe "${verdict}"
+        actions="${actions:+${actions} }${PROBE_ACTION}"
+    done
+    if [ "${actions}" = "${want_actions}" ] && [ "${PROBE_LEVEL}" = "${want_level}" ]; then
+        pass "observe ${desc}"
+    else
+        bad "observe ${desc}: actions '${actions}' level ${PROBE_LEVEL}, want '${want_actions}' level ${want_level}"
+    fi
+}
+
+assert_observe "nothing yet is unknown" "" "" unknown
+assert_observe "first resolve verifies, later ones are quiet" \
+    "resolved resolved" "verified none" healthy
+assert_observe "one failure stays quiet" "failed" "none" unknown
+assert_observe "two consecutive failures warn" "failed failed" "none warn" failing
+assert_observe "a healthy add-on warns after two failures too" \
+    "resolved failed failed" "verified none warn" failing
+# "Consecutive" means consecutive: anything in between resets the run.
+assert_observe "inconclusive breaks the failure run" \
+    "failed inconclusive failed" "none none none" unknown
+assert_observe "a resolve breaks the failure run" \
+    "resolved failed resolved failed" "verified none none none" healthy
+# Inconclusive is no statement about the upstreams: the level freezes.
+assert_observe "inconclusive from unknown stays unknown" "inconclusive" "none" unknown
+assert_observe "inconclusive while failing keeps failing" \
+    "failed failed inconclusive" "none warn none" failing
+assert_observe "inconclusive while healthy keeps healthy" \
+    "resolved inconclusive" "verified none" healthy
+assert_observe "recovery is reported once" \
+    "failed failed resolved resolved" "none warn recovered none" healthy
+# Re-warn after twelve more failed probes, so a log opened mid-outage explains
+# itself; inconclusive probes in between neither count nor restart the cadence.
+assert_observe "re-warns after twelve more failures" \
+    "failed failed $(printf 'failed %.0s' {1..12})" \
+    "none warn $(printf 'none %.0s' {1..11})warn" failing
+assert_observe "inconclusive does not restart the re-warn cadence" \
+    "failed failed $(printf 'failed %.0s' {1..6})inconclusive $(printf 'failed %.0s' {1..6})" \
+    "none warn $(printf 'none %.0s' {1..6})none $(printf 'none %.0s' {1..5})warn" failing
+assert_observe "a new outage after recovery warns at the threshold again" \
+    "failed failed resolved failed failed" "none warn recovered none warn" failing
+
+probe_reset
+probe_observe failed
+probe_observe inconclusive
+if [ "${PROBE_LAST_VERDICT}" = "inconclusive" ] && [ "${PROBE_LEVEL}" = "unknown" ]; then
+    pass "observe records the last verdict apart from the level"
+else
+    bad "observe last verdict ${PROBE_LAST_VERDICT} level ${PROBE_LEVEL}, want inconclusive unknown"
+fi
 
 if [ "${fail}" -eq 0 ]; then
     echo "All guard checks passed."
