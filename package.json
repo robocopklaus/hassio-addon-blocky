@@ -13,6 +13,7 @@
     "check:render": "node scripts/render-test/run.mjs",
     "check:release-notes": "node scripts/check-release-notes.mjs",
     "render:update": "node scripts/render-test/run.mjs --update",
+    "lint:shell": "bash scripts/lint-shell.sh",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
   },
