@@ -81,3 +81,7 @@ _Avoid_: metric, telemetry, sensor, status
 **Denylist** / **Allowlist**:
 Named groups of block/exception sources. The add-on standardizes on these terms throughout schema, UI, and template.
 _Avoid_: blacklist, whitelist, blocklist
+
+**Allowlist-only group**:
+A client group that holds allowlists but no denylist. It turns its allowlists from exceptions into the only domains a client may resolve — but only when every group assigned to that client is allowlist-only. A client mixing it with denylist groups gets ordinary blocking, with the allowlists acting as exceptions.
+_Avoid_: whitelist mode, allow-only client
