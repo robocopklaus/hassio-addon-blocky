@@ -121,7 +121,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # The same file list `pnpm lint:shell` runs (rootfs + scripts/), so local
+      # and CI cannot drift. ShellCheck ships on the ubuntu-latest image.
       - name: Lint shell scripts
-        uses: ludeeus/action-shellcheck@2.0.0
-        with:
-          scandir: blocky/rootfs
+        run: bash scripts/lint-shell.sh

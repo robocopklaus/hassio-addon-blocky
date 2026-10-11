@@ -16,7 +16,7 @@ docker build --build-arg BUILD_ARCH=amd64 -t blocky-addon blocky
 
 # Lint (matches CI)
 hadolint blocky/Dockerfile
-shellcheck blocky/rootfs/etc/cont-init.d/*.sh blocky/rootfs/etc/services.d/blocky/*
+pnpm lint:shell         # ShellCheck over every shell script (rootfs + scripts/), same list as CI
 
 # Test (from repo root)
 pnpm check              # all three checks: contracts + guards + render
@@ -53,7 +53,12 @@ blocky/rootfs/etc/services.d/blocky/run     — starts Blocky with generated con
 blocky/rootfs/etc/services.d/blocky/finish  — handles crashes, prevents restart loops
         ↓
 Blocky binary (DNS on :53, HTTP API on :4000)
+        ↓
+blocky/rootfs/etc/services.d/upstream-probe/run — Probe: queries through /api/query,
+                                                  logs upstream reachability, never enforces (ADR-0012)
 ```
+
+Format-coupled guard functions live in `blocky/rootfs/usr/lib/blocky/guards.sh`, the Probe's logic in `usr/lib/blocky/upstream_probe.sh`; both are pinned by `scripts/test-guards.sh`.
 
 ### Two Configuration Modes
 
@@ -88,7 +93,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 
 ## CI/CD & Release Pipeline
 
-- **Linting** (`.github/workflows/lint.yml`): Hadolint on `blocky/Dockerfile`, ShellCheck on `blocky/rootfs/` — runs on push/PR to main
+- **Linting** (`.github/workflows/lint.yml`): Hadolint on `blocky/Dockerfile`, ShellCheck via `scripts/lint-shell.sh` (rootfs + `scripts/`) — runs on push/PR to main
 - **Release** (`.github/workflows/release.yml`): manual trigger (`workflow_dispatch`) → semantic-release → multi-arch Docker build (amd64, aarch64) → push to GHCR
 - **Versioning**: `scripts/update-addon-version.mjs` is called by semantic-release to stamp the version into `blocky/config.yaml`
 - **Commits**: conventional commits (`feat:` → minor, `fix:` → patch, `feat(deps):` for Blocky updates, `fix(deps):` for Tempio)
@@ -101,7 +106,7 @@ Automated checks guard the translation pipeline — run all three with `pnpm che
 
 - **Config contract** (`scripts/check-config-contract.mjs`) — static three-file parity: every top-level option exists in the schema and translations and is referenced by the template, enum defaults are valid, and the deprecation registry holds (ADR-0005).
 - **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; on macOS `pnpm check` dispatches it into a throwaway Docker container.
-- **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004).
+- **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004), and the Probe module's functions against recorded API responses (ADR-0012).
 
 Separately, the **release-notes smoke test** (`scripts/check-release-notes.mjs`, `pnpm check:release-notes`, CI job `Release Notes`) renders synthetic commits through the real release-notes-generator + conventionalcommits preset, catching a preset major that outpaces the bundled writer (#272, #274). It guards release tooling, so it stays outside the `pnpm check` aggregate (ADR-0008 scope).
 
