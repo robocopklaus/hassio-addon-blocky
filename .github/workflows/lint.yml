@@ -10,6 +10,7 @@ on:
       - "scripts/**"
       - "package.json"
       - "pnpm-lock.yaml"
+      - ".releaserc.json"
       - ".hadolint.yaml"
       - ".shellcheckrc"
       - ".github/workflows/lint.yml"
@@ -73,6 +74,33 @@ jobs:
 
       - name: Test config.sh guards against the render goldens
         run: bash scripts/test-guards.sh
+
+  release-notes:
+    name: Release Notes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.10.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Renders notes through the real release-notes-generator + preset, so a
+      # preset major that outpaces the bundled writer fails here instead of at
+      # release time (#265 / #272).
+      - name: Render release notes smoke test
+        run: pnpm run check:release-notes
 
   hadolint:
     name: Hadolint

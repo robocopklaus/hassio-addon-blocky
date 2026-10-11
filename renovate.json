@@ -62,7 +62,7 @@
       "automerge": false
     },
     {
-      "description": "Group release tooling (semantic-release plugins and the conventionalcommits changelog preset) and keep it manual. These drive the release pipeline; a preset major that outpaces the plugins silently empties the GitHub release notes, so every bump must be reviewed against `pnpm release:dry-run`.",
+      "description": "Group release tooling (semantic-release plugins and the conventionalcommits changelog preset) and keep it manual. These drive the release pipeline; a preset major that outpaces the plugins silently empties the GitHub release notes, so every bump must pass `pnpm check:release-notes` (CI: Release Notes job) and be reviewed against `pnpm release:dry-run`.",
       "groupName": "semantic-release packages",
       "matchPackageNames": [
         "/^@semantic-release//",
@@ -70,6 +70,13 @@
         "conventional-changelog-conventionalcommits"
       ],
       "automerge": false
+    },
+    {
+      "description": "Hold the conventionalcommits preset below v10 until @semantic-release/release-notes-generator bundles conventional-changelog-writer@9. Preset v10 targets writer 9; on writer 8 it empties (10.0) or aborts (10.4) the release notes — see #272 and #274. Lift this cap together with the plugin bump and confirm with `pnpm check:release-notes`.",
+      "matchPackageNames": [
+        "conventional-changelog-conventionalcommits"
+      ],
+      "allowedVersions": "<10.0.0"
     },
     {
       "description": "Blocky updates trigger a version bump and require manual review",
