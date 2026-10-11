@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Upstream resolution probe: the add-on now warns in its log when the upstream resolvers stop answering, and says so again when they recover. Previously a total upstream outage looked like a healthy add-on and showed up only as clients timing out. It only reports — the add-on never restarts or stops itself over a failing upstream. Standard Mode only (#310)
 
+### Changed
+
+- Blocky upgraded from v0.34.0 to v0.35.0
+- **Allowlist-only groups are now scoped to the whole client** (upstream fix in Blocky 0.35.0). Previously, assigning a client a group that holds only allowlists blocked *everything* else for that client — even when the same client was also assigned denylist groups. Now that exclusive "allow nothing else" behaviour only applies when *every* group assigned to the client is allowlist-only; a client with a mix of allowlist-only and denylist groups gets ordinary blocking (denylists apply, allowlists are exceptions). If you relied on the old behaviour to lock a device down to an allowlist, remove its denylist groups from **Client Group Assignments** so that all of its groups are allowlist-only.
+- `conditional.fallback_upstream` works again (upstream fix in Blocky 0.35.0). It had silently had no effect since an earlier Blocky release; with it enabled, a rewritten query that finds no conditional answer is now sent upstream under its original name, as documented.
+
 ## [5.2.1] - 2026-08-02
 
 ### Added
