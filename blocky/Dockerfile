@@ -17,8 +17,8 @@ ARG TEMPIO_VERSION=2026.07.0
 # IMPORTANT: Tempio does not publish checksums; update all hashes when
 # TEMPIO_VERSION changes (including Renovate bumps).
 # Example: curl -sSLf "https://github.com/home-assistant/tempio/releases/download/${TEMPIO_VERSION}/tempio_<arch>" | sha256sum
-ARG TEMPIO_SHA256_AMD64=3b93ead246b3e49a616639594ec66a01e2a913193ea4462428b081b979d32243
-ARG TEMPIO_SHA256_AARCH64=01d1c8108e05b02e865286e715b05025a97f484ac694daa019323144e1d4e986
+ARG TEMPIO_SHA256_AMD64=c03682e407110fa89475c0231cde5c4b5fd59660c7fc68e5ce5d2e703ed8c002
+ARG TEMPIO_SHA256_AARCH64=dd846861a6829bdf1267b09d4735fc6ebd0cc748c73542eb9e721c9c4d833209
 
 # Install Tempio for config templating
 RUN \
