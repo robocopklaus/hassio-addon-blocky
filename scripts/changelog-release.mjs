@@ -10,9 +10,11 @@
 //   verify <V>  verifyReleaseCmd. Runs once the version is computed and before
 //               anything is tagged or published (in --dry-run too). A non-zero
 //               exit aborts the release.
-//   stamp <V>   prepareCmd. Dates the `## [V]` heading with today's UTC date.
-//               The date is the only thing the pipeline writes. The content and
-//               the heading stay with the human.
+//   stamp <V>   prepareCmd. Dates the `## [V]` heading with today's UTC date
+//               and adds `[V]: <repo>/compare/v<prev>...v<V>` on top of the
+//               link block, <prev> being the next older section. Date and
+//               compare link are the only things the pipeline writes. The
+//               content and the heading stay with the human.
 //
 // Checked here is the section's structure, never whether its content is
 // complete. Picking the entries is the human's job (ADR-0010).
@@ -25,9 +27,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const CHANGELOG_NAME = "blocky/CHANGELOG.md";
 const CHANGELOG = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", CHANGELOG_NAME);
+const REPO_URL = "https://github.com/robocopklaus/hassio-addon-blocky";
 
 const DATE = String.raw`\d{4}-\d{2}-\d{2}`;
 const SECTION_HEADING = new RegExp(String.raw`^## \[([^\]]+)\](?: - (${DATE}))?$`);
+const LINK_DEFINITION = /^\[([^\]]+)\]: \S/;
 
 /**
  * Split a changelog into its `## [...]` sections. A `## ` line without a
@@ -56,6 +60,16 @@ export function parseSections(text) {
   return { sections, malformed };
 }
 
+/** The `[X]: <url>` link reference definitions, in file order. */
+export function parseLinks(text) {
+  const links = [];
+  for (const [index, raw] of text.split("\n").entries()) {
+    const match = LINK_DEFINITION.exec(raw.trimEnd());
+    if (match) links.push({ version: match[1], line: index + 1 });
+  }
+  return links;
+}
+
 const isUnreleased = (section) => section.version.toLowerCase() === "unreleased";
 
 /** True when at least one `### ` subsection holds at least one `- ` entry. */
@@ -75,6 +89,8 @@ function hasEntries(body) {
 export function verifyChangelog(text, version) {
   const errors = [];
   const { sections, malformed } = parseSections(text);
+  const links = parseLinks(text);
+  const linkFor = (v) => links.find((l) => l.version === v);
 
   for (const m of malformed) {
     errors.push(`line ${m.line}: "${m.text}" is not a well-formed version heading. Use "## [X.Y.Z]" or "## [X.Y.Z] - YYYY-MM-DD"`);
@@ -107,11 +123,23 @@ export function verifyChangelog(text, version) {
     if (!hasEntries(top.body)) {
       errors.push(`"## [${version}]" has no entries. It needs at least one "### " subsection with a "- " line`);
     }
+    if (older.length === 0) {
+      errors.push(`"## [${version}]" has nothing to compare against. The release links it to the next older section`);
+    }
   }
 
-  for (const s of older) {
+  const existing = linkFor(version);
+  if (existing) {
+    errors.push(`line ${existing.line}: "[${version}]:" already exists. Remove it; the release adds the compare link`);
+  }
+
+  for (const [i, s] of older.entries()) {
     if (!s.date) {
       errors.push(`line ${s.line}: "## [${s.version}]" is a released section without a date. Add " - YYYY-MM-DD"`);
+    } else if (!linkFor(s.version)) {
+      errors.push(
+        `line ${s.line}: "## [${s.version}]" has no compare link. Add "[${s.version}]: ${REPO_URL}/compare/v${older[i + 1]?.version ?? "<previous>"}...v${s.version}" to the link block`,
+      );
     }
   }
 
@@ -119,8 +147,9 @@ export function verifyChangelog(text, version) {
 }
 
 /**
- * Date the `## [version]` heading. Refuses anything verifyChangelog would
- * reject, so a stamp never papers over an unfinished changelog.
+ * Date the `## [version]` heading and add its compare link on top of the link
+ * block. Refuses anything verifyChangelog would reject, so a stamp never
+ * papers over an unfinished changelog.
  */
 export function stampChangelog(text, version, date) {
   if (!new RegExp(`^${DATE}$`).test(date)) {
@@ -130,11 +159,18 @@ export function stampChangelog(text, version, date) {
   if (errors.length > 0) {
     throw new Error(`refusing to stamp:\n  ${errors.join("\n  ")}`);
   }
-  // verify passed, so the section for `version` is the top one, undated.
-  const { line } = parseSections(text).sections.find((s) => s.version === version);
+  // verify passed: no [Unreleased], `version` is the top section, undated, and
+  // the section below it is the one to compare against.
+  const [{ line }, { version: previous }] = parseSections(text).sections;
+  // verify also passed every older section's link, so the block exists.
+  const [firstLink] = parseLinks(text);
+  if (!firstLink) throw new Error("refusing to stamp: no link reference block to add the compare link to");
+
   const lines = text.split("\n");
-  const eol = lines[line - 1].endsWith("\r") ? "\r" : "";
-  lines[line - 1] = `## [${version}] - ${date}${eol}`;
+  const eolOf = (n) => (lines[n - 1].endsWith("\r") ? "\r" : "");
+  const compare = `[${version}]: ${REPO_URL}/compare/v${previous}...v${version}${eolOf(firstLink.line)}`;
+  lines[line - 1] = `## [${version}] - ${date}${eolOf(line)}`;
+  lines.splice(firstLink.line - 1, 0, compare); // below the heading, so `line` stays valid
   return lines.join("\n");
 }
 
@@ -164,7 +200,7 @@ function main([command, version]) {
     console.error(`✗ ${error.message}`);
     return 1;
   }
-  console.log(`Stamped ${CHANGELOG_NAME}: ## [${version}] - ${date}`);
+  console.log(`Stamped ${CHANGELOG_NAME}: ## [${version}] - ${date}, with its compare link`);
   return 0;
 }
 
