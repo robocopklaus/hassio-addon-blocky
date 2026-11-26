@@ -82,7 +82,7 @@ test("an undated released section below the top fails (the v5.3.0 case)", () => 
 });
 
 test("a non-version ## line is plain text, but a typo in the top heading still fails", () => {
-  const pointer = `${READY}\n## 0.3.0 and earlier\n\nSee git history.\n`;
+  const pointer = READY.replace(LINKS, `## 0.3.0 and earlier\n\nSee git history.\n\n${LINKS}`);
   assert.deepEqual(verifyChangelog(pointer, "5.4.0"), []);
   const typo = READY.replace("## [5.4.0]", "## 5.4.0");
   assert.ok(verifyChangelog(typo, "5.4.0").some((e) => e.includes('the topmost section is "## [5.3.0]"')));
@@ -176,4 +176,43 @@ test("stamp refuses a changelog that does not verify", () => {
 test("the stamped changelog no longer verifies, so a second stamp cannot run", () => {
   const stamped = stampChangelog(READY, "5.4.0", "2026-11-26");
   assert.throws(() => stampChangelog(stamped, "5.4.0", "2026-11-27"), /already dated/);
+});
+
+test("stamp adds the compare link to the trailing link block, not to a reference link inside a section", () => {
+  const ref = READY.replace(
+    "- Blocky upgraded from v0.35.0 to v0.37.0\n",
+    "- Blocky upgraded from v0.35.0 to v0.37.0, see [#400]\n\n[#400]: https://example.com/pull/400\n",
+  );
+  assert.deepEqual(verifyChangelog(ref, "5.4.0"), []);
+  const stamped = stampChangelog(ref, "5.4.0", "2026-11-26");
+  assert.equal(stamped, ref.replace("## [5.4.0]\n", "## [5.4.0] - 2026-11-26\n").replace(LINKS, LINK_540 + LINKS));
+});
+
+test("a leftover [Unreleased] link definition fails", () => {
+  const stale = READY.replace(LINKS, `[Unreleased]: ${REPO}/compare/v5.3.0...HEAD\n${LINKS}`);
+  const errors = verifyChangelog(stale, "5.4.0");
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /"\[Unreleased\]:"/);
+});
+
+test("a link definition indented by up to three spaces still counts", () => {
+  const indented = READY.replace("[5.2.1]: ", "  [5.2.1]: ");
+  assert.deepEqual(verifyChangelog(indented, "5.4.0"), []);
+});
+
+test("an older section without date and link reports both in one run", () => {
+  const bare = READY.replace("## [5.3.0] - 2026-10-11", "## [5.3.0]").replace(
+    `[5.3.0]: ${REPO}/compare/v5.2.1...v5.3.0\n`,
+    "",
+  );
+  const errors = verifyChangelog(bare, "5.4.0");
+  assert.equal(errors.length, 2);
+  assert.ok(errors.some((e) => /without a date/.test(e)));
+  assert.ok(errors.some((e) => /has no compare link/.test(e)));
+});
+
+test("a missing link on the oldest section suggests a release link, not a compare link", () => {
+  const oldest = READY.replace(`[5.2.1]: ${REPO}/compare/v5.2.0...v5.2.1\n`, "");
+  const [error] = verifyChangelog(oldest, "5.4.0");
+  assert.ok(error.includes(`"[5.2.1]: ${REPO}/releases/tag/v5.2.1"`), error);
 });

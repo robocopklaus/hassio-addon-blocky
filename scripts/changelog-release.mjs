@@ -27,11 +27,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const CHANGELOG_NAME = "blocky/CHANGELOG.md";
 const CHANGELOG = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", CHANGELOG_NAME);
+// Compare links point here. A repo rename or transfer needs this line changed;
+// the gate does not check the URL of existing links.
 const REPO_URL = "https://github.com/robocopklaus/hassio-addon-blocky";
 
 const DATE = String.raw`\d{4}-\d{2}-\d{2}`;
 const SECTION_HEADING = new RegExp(String.raw`^## \[([^\]]+)\](?: - (${DATE}))?$`);
-const LINK_DEFINITION = /^\[([^\]]+)\]: \S/;
+const LINK_DEFINITION = /^ {0,3}\[([^\]]+)\]: \S/; // CommonMark allows up to 3 spaces of indent
 
 /**
  * Split a changelog into its `## [...]` sections. A `## ` line without a
@@ -60,14 +62,17 @@ export function parseSections(text) {
   return { sections, malformed };
 }
 
-/** The `[X]: <url>` link reference definitions, in file order. */
+/**
+ * The link block: the run of `[X]: <url>` definitions that ends the file, in
+ * file order. A reference link inside a section is not part of it.
+ */
 export function parseLinks(text) {
-  const links = [];
-  for (const [index, raw] of text.split("\n").entries()) {
-    const match = LINK_DEFINITION.exec(raw.trimEnd());
-    if (match) links.push({ version: match[1], line: index + 1 });
-  }
-  return links;
+  const lines = text.split("\n").map((l) => l.trimEnd());
+  let end = lines.length;
+  while (end > 0 && lines[end - 1] === "") end--;
+  let start = end;
+  while (start > 0 && LINK_DEFINITION.test(lines[start - 1])) start--;
+  return lines.slice(start, end).map((l, i) => ({ version: LINK_DEFINITION.exec(l)[1], line: start + i + 1 }));
 }
 
 const isUnreleased = (section) => section.version.toLowerCase() === "unreleased";
@@ -128,6 +133,10 @@ export function verifyChangelog(text, version) {
     }
   }
 
+  for (const l of links.filter((l) => isUnreleased(l))) {
+    errors.push(`line ${l.line}: "[${l.version}]:" found. Remove it; the release adds "[${version}]:" instead`);
+  }
+
   const existing = linkFor(version);
   if (existing) {
     errors.push(`line ${existing.line}: "[${version}]:" already exists. Remove it; the release adds the compare link`);
@@ -136,10 +145,13 @@ export function verifyChangelog(text, version) {
   for (const [i, s] of older.entries()) {
     if (!s.date) {
       errors.push(`line ${s.line}: "## [${s.version}]" is a released section without a date. Add " - YYYY-MM-DD"`);
-    } else if (!linkFor(s.version)) {
-      errors.push(
-        `line ${s.line}: "## [${s.version}]" has no compare link. Add "[${s.version}]: ${REPO_URL}/compare/v${older[i + 1]?.version ?? "<previous>"}...v${s.version}" to the link block`,
-      );
+    }
+    if (!linkFor(s.version)) {
+      const previous = older[i + 1]?.version;
+      const url = previous
+        ? `${REPO_URL}/compare/v${previous}...v${s.version}`
+        : `${REPO_URL}/releases/tag/v${s.version}`; // the first release, like [1.0.0]
+      errors.push(`line ${s.line}: "## [${s.version}]" has no compare link. Add "[${s.version}]: ${url}" to the link block`);
     }
   }
 
@@ -162,7 +174,8 @@ export function stampChangelog(text, version, date) {
   // verify passed: no [Unreleased], `version` is the top section, undated, and
   // the section below it is the one to compare against.
   const [{ line }, { version: previous }] = parseSections(text).sections;
-  // verify also passed every older section's link, so the block exists.
+  // verify also passed every older section's link, so the block exists. It
+  // ends the file, so it sits below the heading.
   const [firstLink] = parseLinks(text);
   if (!firstLink) throw new Error("refusing to stamp: no link reference block to add the compare link to");
 
@@ -170,7 +183,7 @@ export function stampChangelog(text, version, date) {
   const eolOf = (n) => (lines[n - 1].endsWith("\r") ? "\r" : "");
   const compare = `[${version}]: ${REPO_URL}/compare/v${previous}...v${version}${eolOf(firstLink.line)}`;
   lines[line - 1] = `## [${version}] - ${date}${eolOf(line)}`;
-  lines.splice(firstLink.line - 1, 0, compare); // below the heading, so `line` stays valid
+  lines.splice(firstLink.line - 1, 0, compare);
   return lines.join("\n");
 }
 
