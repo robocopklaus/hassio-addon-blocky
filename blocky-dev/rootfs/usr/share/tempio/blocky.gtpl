@@ -393,6 +393,13 @@ queryLog:
 {{- if $queryLog.flush_interval }}
   flushInterval: {{ $queryLog.flush_interval | quote }}
 {{- end }}
+{{- if $queryLog.ignore_clients }}
+  ignore:
+    clients:
+{{- range $queryLog.ignore_clients }}
+      - {{ . | quote }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{- $httpsRequested := or .https.enable .http3.enable }}
