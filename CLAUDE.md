@@ -28,6 +28,7 @@ pnpm check:render       # real tempio+blocky render vs goldens; Linux only
 pnpm check:release-notes # release tooling: preset/writer render real notes
                          # (not part of `pnpm check` — release tooling, not the pipeline)
 pnpm check:changelog    # release tooling: tests for the changelog gate (ADR-0010)
+                        # (not part of `pnpm check` — release tooling, not the pipeline)
 
 # Release (semantic-release via pnpm)
 pnpm release:dry-run    # preview what would be released
@@ -97,7 +98,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 - **Linting** (`.github/workflows/lint.yml`): Hadolint on `blocky/Dockerfile`, ShellCheck via `scripts/lint-shell.sh` (rootfs + `scripts/`) — runs on push/PR to main
 - **Release** (`.github/workflows/release.yml`): manual trigger (`workflow_dispatch`) → semantic-release → multi-arch Docker build (amd64, aarch64) → push to GHCR
 - **Versioning**: `scripts/update-addon-version.mjs` is called by semantic-release to stamp the version into `blocky/config.yaml`
-- **Changelog gate**: `blocky/CHANGELOG.md` is hand-curated (ADR-0010). semantic-release runs `scripts/changelog-release.mjs verify` before tagging, which aborts unless the top section is an undated `## [<computed version>]` with entries and every older section is dated. Its `stamp` step then dates the heading. Write entries under the concrete next-version heading and leave it undated
+- **Changelog gate**: `blocky/CHANGELOG.md` is hand-curated (ADR-0010). semantic-release runs `scripts/changelog-release.mjs verify` before tagging, which aborts unless the top section is an undated `## [<computed version>]` with entries and every older section is dated. Its `stamp` step then dates the heading. Write entries under the concrete next-version heading and leave it undated.
 - **Commits**: conventional commits (`feat:` → minor, `fix:` → patch, `feat(deps):` for Blocky updates, `fix(deps):` for Tempio)
 - **Dev Deploy** (`.github/workflows/deploy-dev.yml`): push to main touching `blocky/**` → syncs `blocky-dev/` with patched config → commits back to main with `[skip ci]`
 - **Renovate** (`renovate.json`): auto-updates Blocky, Tempio, base images, and semantic-release packages. Patches auto-merge; Blocky bumps require manual review — see `docs/agents/blocky-bump-review.md` for what that review is.

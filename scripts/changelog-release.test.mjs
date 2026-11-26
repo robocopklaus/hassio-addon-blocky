@@ -76,6 +76,30 @@ test("a non-version ## line is plain text, but a typo in the top heading still f
   assert.ok(verifyChangelog(typo, "5.4.0").some((e) => e.includes('the topmost section is "## [5.3.0]"')));
 });
 
+test("a bracketed heading that is not a well-formed version heading fails instead of turning into text", () => {
+  // The bypass the #401 review reproduced: the malformed heading's entries
+  // counted toward an empty [5.4.0], and its missing date went unnoticed.
+  const bypass = READY.replace("### Changed\n\n- Blocky upgraded from v0.35.0 to v0.37.0\n", "").replace(
+    "## [5.3.0] - 2026-10-11",
+    "## [5.3.0] \u2013 2026-10-11",
+  );
+  const errors = verifyChangelog(bypass, "5.4.0");
+  assert.ok(errors.some((e) => e.includes('"## [5.4.0]" has no entries')));
+  assert.ok(errors.some((e) => e.includes("is not a well-formed version heading")));
+  for (const heading of ["## [5.3.0] - TBD", "## [5.3.0] - 2026-10-11 (yanked)", "## [5.3.0]: 2026-10-11"]) {
+    const errors = verifyChangelog(READY.replace("## [5.3.0] - 2026-10-11", heading), "5.4.0");
+    assert.equal(errors.length, 1, heading);
+    assert.match(errors[0], /is not a well-formed version heading/);
+  }
+});
+
+test("an [Unreleased] section above the release reports only itself, not follow-on errors", () => {
+  const above = READY.replace("## [5.4.0]", "## [Unreleased]\n\n### Added\n\n- x\n\n## [5.4.0]");
+  const errors = verifyChangelog(above, "5.4.0");
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /\[Unreleased\]/);
+});
+
 test("a changelog without any section fails", () => {
   assert.equal(verifyChangelog(HEADER, "5.4.0").length, 1);
 });
@@ -83,6 +107,12 @@ test("a changelog without any section fails", () => {
 test("stamp dates only the top heading and leaves everything else byte-identical", () => {
   const stamped = stampChangelog(READY, "5.4.0", "2026-11-26");
   assert.equal(stamped, READY.replace("## [5.4.0]\n", "## [5.4.0] - 2026-11-26\n"));
+});
+
+test("stamp keeps CRLF line endings on the stamped line", () => {
+  const crlf = READY.replaceAll("\n", "\r\n");
+  const stamped = stampChangelog(crlf, "5.4.0", "2026-11-26");
+  assert.equal(stamped, crlf.replace("## [5.4.0]\r\n", "## [5.4.0] - 2026-11-26\r\n"));
 });
 
 test("stamp refuses a changelog that does not verify", () => {

@@ -23,26 +23,40 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const CHANGELOG = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../blocky/CHANGELOG.md");
+const CHANGELOG_NAME = "blocky/CHANGELOG.md";
+const CHANGELOG = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", CHANGELOG_NAME);
 
-const SECTION_HEADING = /^## \[([^\]]+)\](?: - (\d{4}-\d{2}-\d{2}))?$/;
+const DATE = String.raw`\d{4}-\d{2}-\d{2}`;
+const SECTION_HEADING = new RegExp(String.raw`^## \[([^\]]+)\](?: - (${DATE}))?$`);
 
 /**
- * Split a changelog into its `## [...]` sections. A `## ` line that is not a
- * version heading (the closing "## 0.3.0 and earlier" pointer) is plain text.
- * A typo in the top heading still fails: the next section becomes the top one
- * and no longer matches the computed version.
+ * Split a changelog into its `## [...]` sections. A `## ` line without a
+ * bracket (the closing "## 0.3.0 and earlier" pointer) is plain text. A
+ * bracketed one that is not exactly `## [X]` or `## [X] - YYYY-MM-DD` is
+ * reported as malformed: read as text, its entries would count toward the
+ * section above it and its missing date would go unnoticed.
  */
 export function parseSections(text) {
   const sections = [];
+  const malformed = [];
+  let current = null; // section that collects body lines; null after a malformed heading
   for (const [index, raw] of text.split("\n").entries()) {
     const line = raw.trimEnd();
     const match = SECTION_HEADING.exec(line);
-    if (match) sections.push({ version: match[1], date: match[2] ?? null, line: index + 1, body: [] });
-    else if (sections.length > 0) sections[sections.length - 1].body.push(line);
+    if (match) {
+      current = { version: match[1], date: match[2] ?? null, line: index + 1, body: [] };
+      sections.push(current);
+    } else if (line.startsWith("## [")) {
+      malformed.push({ line: index + 1, text: line });
+      current = null;
+    } else if (current) {
+      current.body.push(line);
+    }
   }
-  return sections;
+  return { sections, malformed };
 }
+
+const isUnreleased = (section) => section.version.toLowerCase() === "unreleased";
 
 /** True when at least one `### ` subsection holds at least one `- ` entry. */
 function hasEntries(body) {
@@ -60,17 +74,21 @@ function hasEntries(body) {
  */
 export function verifyChangelog(text, version) {
   const errors = [];
-  const sections = parseSections(text);
+  const { sections, malformed } = parseSections(text);
 
-  for (const s of sections) {
-    if (s.version.toLowerCase() === "unreleased") {
-      errors.push(
-        `line ${s.line}: "## [${s.version}]" found. Nothing renames it at release, so write the entries under "## [${version}]" instead (ADR-0010)`,
-      );
-    }
+  for (const m of malformed) {
+    errors.push(`line ${m.line}: "${m.text}" is not a well-formed version heading. Use "## [X.Y.Z]" or "## [X.Y.Z] - YYYY-MM-DD"`);
   }
 
-  const [top, ...older] = sections;
+  for (const s of sections.filter(isUnreleased)) {
+    errors.push(
+      `line ${s.line}: "## [${s.version}]" found. Nothing renames it at release, so write the entries under "## [${version}]" instead (ADR-0010)`,
+    );
+  }
+
+  // [Unreleased] is already reported above; leave it out of the ordering so
+  // it does not also trigger "wrong version" or "undated" errors.
+  const [top, ...older] = sections.filter((s) => !isUnreleased(s));
   if (!top) {
     errors.push(`no version section found. Add "## [${version}]" with this release's entries`);
     return errors;
@@ -105,17 +123,18 @@ export function verifyChangelog(text, version) {
  * reject, so a stamp never papers over an unfinished changelog.
  */
 export function stampChangelog(text, version, date) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  if (!new RegExp(`^${DATE}$`).test(date)) {
     throw new Error(`invalid date "${date}" (expected YYYY-MM-DD)`);
   }
   const errors = verifyChangelog(text, version);
   if (errors.length > 0) {
     throw new Error(`refusing to stamp:\n  ${errors.join("\n  ")}`);
   }
-  const heading = `## [${version}]`;
+  // verify passed, so the section for `version` is the top one, undated.
+  const { line } = parseSections(text).sections.find((s) => s.version === version);
   const lines = text.split("\n");
-  const index = lines.findIndex((line) => line.trimEnd() === heading);
-  lines[index] = `${heading} - ${date}`;
+  const eol = lines[line - 1].endsWith("\r") ? "\r" : "";
+  lines[line - 1] = `## [${version}] - ${date}${eol}`;
   return lines.join("\n");
 }
 
@@ -129,12 +148,12 @@ function main([command, version]) {
   if (command === "verify") {
     const errors = verifyChangelog(text, version);
     if (errors.length > 0) {
-      console.error(`✗ blocky/CHANGELOG.md is not finalized for ${version}:`);
+      console.error(`✗ ${CHANGELOG_NAME} is not finalized for ${version}:`);
       for (const e of errors) console.error(`  - ${e}`);
       console.error("Finalize the section, push it to main, and dispatch the release again.");
       return 1;
     }
-    console.log(`✓ blocky/CHANGELOG.md is ready for ${version}`);
+    console.log(`✓ ${CHANGELOG_NAME} is ready for ${version}`);
     return 0;
   }
 
@@ -145,7 +164,7 @@ function main([command, version]) {
     console.error(`✗ ${error.message}`);
     return 1;
   }
-  console.log(`Stamped blocky/CHANGELOG.md: ## [${version}] - ${date}`);
+  console.log(`Stamped ${CHANGELOG_NAME}: ## [${version}] - ${date}`);
   return 0;
 }
 
