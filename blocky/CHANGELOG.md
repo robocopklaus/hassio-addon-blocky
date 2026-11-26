@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [5.4.0]
+
+### Changed
+
+- Blocky upgraded from v0.35.0 to v0.37.0
+- **DNSSEC security fixes** (upstream fix in Blocky 0.37.0; six advisories affecting released versions, GHSA-rfc7-q64c-hj2f and related). These only matter when Blocky validates DNSSEC itself (`dnssec.validate: true`), which Standard Mode never turns on. If you use Custom Config Mode with `dnssec.validate: true`, update now.
+- DNS-over-TLS upstreams now share one connection for many queries instead of opening a new TLS connection per query (upstream fix in Blocky 0.36.0), so they no longer time out under heavy load. This affects the default setup, whose upstreams include `tcp-tls:one.one.one.one` and `tcp-tls:dns.google`. A DoT server that closes connections after every few queries may now fail some queries in a burst.
+- Blocklists parse more entries correctly (upstream fix in Blocky 0.36.0): a list starting with a UTF-8 byte order mark no longer loses its first entry, and internationalized domain names written in hosts format (`0.0.0.0 münchen.example.de`), with uppercase letters, or as wildcards now match the way DNS clients query them. This applies to the denylists shipped by default too.
+- Database query logs (`query_log.type` `sqlite`, `mysql`, `postgresql`, `timescale`) no longer drop entries while the database is slow or briefly unreachable (upstream fix in Blocky 0.37.0). A database that can't be reached at startup is now retried in the background, instead of the log switching to the console until the next restart.
+
 ## [5.3.0]
 
 ### Added
