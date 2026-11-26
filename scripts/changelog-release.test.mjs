@@ -11,6 +11,10 @@ import test from "node:test";
 import { stampChangelog, verifyChangelog } from "./changelog-release.mjs";
 
 const HEADER = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n";
+const REPO = "https://github.com/robocopklaus/hassio-addon-blocky";
+const LINKS = `[5.3.0]: ${REPO}/compare/v5.2.1...v5.3.0
+[5.2.1]: ${REPO}/compare/v5.2.0...v5.2.1
+`;
 
 const READY = `${HEADER}
 ## [5.4.0]
@@ -24,7 +28,15 @@ const READY = `${HEADER}
 ### Added
 
 - Upstream resolution probe
-`;
+
+## [5.2.1] - 2026-08-02
+
+### Fixed
+
+- Outgoing IP Version label
+
+${LINKS}`;
+const LINK_540 = `[5.4.0]: ${REPO}/compare/v5.3.0...v5.4.0\n`;
 
 test("a finalized, undated top section verifies", () => {
   assert.deepEqual(verifyChangelog(READY, "5.4.0"), []);
@@ -104,15 +116,56 @@ test("a changelog without any section fails", () => {
   assert.equal(verifyChangelog(HEADER, "5.4.0").length, 1);
 });
 
-test("stamp dates only the top heading and leaves everything else byte-identical", () => {
-  const stamped = stampChangelog(READY, "5.4.0", "2026-11-26");
-  assert.equal(stamped, READY.replace("## [5.4.0]\n", "## [5.4.0] - 2026-11-26\n"));
+test("a compare link that already exists for the release fails", () => {
+  const linked = READY.replace(LINKS, LINK_540 + LINKS);
+  const errors = verifyChangelog(linked, "5.4.0");
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /"\[5\.4\.0\]:" already exists/);
 });
 
-test("stamp keeps CRLF line endings on the stamped line", () => {
+test("a dated section without a compare link fails (the v5.3.0 case, again)", () => {
+  const unlinked = READY.replace(`[5.3.0]: ${REPO}/compare/v5.2.1...v5.3.0\n`, "");
+  const errors = verifyChangelog(unlinked, "5.4.0");
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /"## \[5\.3\.0\]" has no compare link/);
+});
+
+test("a release without an older section to compare against fails", () => {
+  const only = `${HEADER}\n## [1.0.0]\n\n### Added\n\n- First release\n`;
+  const errors = verifyChangelog(only, "1.0.0");
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /nothing to compare against/);
+});
+
+test("stamp dates the top heading, adds its compare link on top of the link block, and touches nothing else", () => {
+  const stamped = stampChangelog(READY, "5.4.0", "2026-11-26");
+  assert.equal(
+    stamped,
+    READY.replace("## [5.4.0]\n", "## [5.4.0] - 2026-11-26\n").replace(LINKS, LINK_540 + LINKS),
+  );
+});
+
+test("stamp compares against the next older section, not a version in between", () => {
+  // 3.2.1 and 3.2.2 were tagged without a section, and [4.0.0] compares to
+  // v3.2.0. Same here: without a [5.3.0] section, 5.4.0 compares to v5.2.1.
+  const start = READY.indexOf("## [5.3.0]");
+  const gap = (READY.slice(0, start) + READY.slice(READY.indexOf("## [5.2.1]"))).replace(
+    `[5.3.0]: ${REPO}/compare/v5.2.1...v5.3.0\n`,
+    "",
+  );
+  const stamped = stampChangelog(gap, "5.4.0", "2026-11-26");
+  assert.ok(stamped.includes(`\n[5.4.0]: ${REPO}/compare/v5.2.1...v5.4.0\n[5.2.1]:`));
+});
+
+test("stamp keeps CRLF line endings on the stamped and the added line", () => {
   const crlf = READY.replaceAll("\n", "\r\n");
   const stamped = stampChangelog(crlf, "5.4.0", "2026-11-26");
-  assert.equal(stamped, crlf.replace("## [5.4.0]\r\n", "## [5.4.0] - 2026-11-26\r\n"));
+  assert.equal(
+    stamped,
+    crlf
+      .replace("## [5.4.0]\r\n", "## [5.4.0] - 2026-11-26\r\n")
+      .replace(LINKS.replaceAll("\n", "\r\n"), (LINK_540 + LINKS).replaceAll("\n", "\r\n")),
+  );
 });
 
 test("stamp refuses a changelog that does not verify", () => {

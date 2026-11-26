@@ -1,5 +1,5 @@
 {
-  "$comment": "Release notes are generated in GitHub releases and embedded in the release commit message. blocky/CHANGELOG.md is the hand-curated user-facing changelog (ADR-0010): the release verifies its section and stamps the date, never its content.",
+  "$comment": "Release notes are generated in GitHub releases and embedded in the release commit message. blocky/CHANGELOG.md is the hand-curated user-facing changelog (ADR-0010): the release verifies its section and stamps the date and compare link, never its content.",
   "branches": [
     "main"
   ],
