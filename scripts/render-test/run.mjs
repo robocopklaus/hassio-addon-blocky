@@ -62,9 +62,10 @@ if (process.platform !== "linux") {
   console.error(
     [
       `This harness runs the shipped Linux ${"tempio"}/${"blocky"} binaries and must run on Linux.`,
-      `tempio publishes no macOS build, so render here through a throwaway Linux container:`,
+      `Use \`pnpm check:render\` (or \`pnpm render:update\`), which renders through a`,
+      `throwaway Linux container off Linux. The equivalent docker command:`,
       ``,
-      dockerRenderHint({ update: UPDATE }),
+      dockerRenderHint(args),
       ``,
     ].join("\n")
   );

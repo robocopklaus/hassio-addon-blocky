@@ -8,17 +8,14 @@
 //   render     real tempio + blocky render      Linux-only binaries
 //
 // contracts + guards are instant and ALWAYS run — both results are collected,
-// with no short-circuit between them. render runs only if both passed: bare on
-// Linux, else dispatched into the throwaway Docker container documented in
-// ADR-0003 (run.mjs stays Linux-only and untouched — this aggregate owns the
-// platform decision, the harness does not). If render cannot run (off-Linux and
-// Docker unavailable, an image/daemon failure, or a timeout) it is reported as
-// ⚠ CANTRUN and the aggregate exits non-zero, so a green result never hides an
-// unverified render.
-//
-// The Docker dispatch bind-mounts the repo but MASKS node_modules with a private
-// volume, so the container's Linux `pnpm install` never overwrites the host's
-// platform-resolved tree (see ADR-0008).
+// with no short-circuit between them. render runs only if both passed, through
+// render-test/render.mjs — the same entry as `pnpm check:render`, which owns the
+// platform decision: bare on Linux, else the throwaway Docker container
+// documented in ADR-0003 (run.mjs stays Linux-only and refusing). If render
+// cannot run (off-Linux and Docker unavailable, an image/daemon failure, or a
+// timeout) render.mjs exits with a can't-run code, reported here as ⚠ CANTRUN;
+// the aggregate exits non-zero for it, so a green result never hides an
+// unverified render. See ADR-0008.
 //
 // CI does NOT use this aggregate: lint.yml runs the three as lean parallel jobs.
 // See docs/adr/0008-single-check-aggregate.md.
@@ -28,7 +25,7 @@ import { spawnSync } from "node:child_process";
 import { writeSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { dockerRenderArgs } from "./render-test/docker-render.mjs";
+import { RENDER_CANTRUN_EXITS } from "./render-test/docker-render.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,11 +33,6 @@ const PASS = "pass";
 const FAIL = "fail";
 const SKIPPED = "skipped";
 const CANTRUN = "cantrun";
-
-// A docker CLI that can talk to its daemon but never gets a response must not
-// wedge `pnpm check` forever — cap the probe and the render container.
-const DOCKER_PROBE_TIMEOUT_MS = 15_000;
-const DOCKER_RENDER_TIMEOUT_MS = 15 * 60_000;
 
 // Write synchronously to a fd. Child steps stream via spawnSync stdio:"inherit"
 // while the event loop is blocked, so an async process.stdout.write for a heading
@@ -84,31 +76,6 @@ function runFast(name, cmd, args) {
   return r.ok ? PASS : FAIL;
 }
 
-// Is a Docker daemon actually reachable? `docker version` needs both the binary
-// (else ENOENT) and a running server (else non-zero) — so a zero exit means we
-// can really launch the render container. Timed out so a wedged daemon can't hang.
-function dockerAvailable() {
-  const r = spawnSync("docker", ["version"], {
-    cwd: ROOT,
-    stdio: "ignore",
-    timeout: DOCKER_PROBE_TIMEOUT_MS,
-  });
-  return r.status === 0;
-}
-
-// The throwaway-container render (ADR-0003's Linux fallback). The command —
-// image, isolated node_modules/store volumes, --mount bind (no colon-splittable
-// -v) — is single-sourced in render-test/docker-render.mjs, shared with run.mjs's
-// printed hint so the two can't drift. Timed out so a wedged daemon can't hang.
-function runRenderViaDocker() {
-  return run("docker", dockerRenderArgs(ROOT), { timeout: DOCKER_RENDER_TIMEOUT_MS });
-}
-
-// docker run's own failures (image pull, daemon, bad option) surface as exit
-// 125/126/127; anything else is the container command's own exit code — i.e. a
-// real render failure. So env problems degrade to CANTRUN, not a misleading FAIL.
-const DOCKER_INFRA_EXITS = new Set([125, 126, 127]);
-
 // --- contracts + guards (always) --------------------------------------------
 const contracts = runFast("contracts", "node", ["scripts/check-config-contract.mjs"]);
 const guards = runFast("guards", "bash", ["scripts/test-guards.sh"]);
@@ -117,18 +84,14 @@ const guards = runFast("guards", "bash", ["scripts/test-guards.sh"]);
 let render;
 if (contracts !== PASS || guards !== PASS) {
   render = SKIPPED;
-} else if (process.platform === "linux") {
-  heading("render");
-  const r = run("node", ["scripts/render-test/run.mjs"]);
-  render = r.launchError ? CANTRUN : r.ok ? PASS : FAIL;
-} else if (dockerAvailable()) {
-  heading("render (via Docker)");
-  const r = runRenderViaDocker();
-  if (r.ok) render = PASS;
-  else if (r.launchError || DOCKER_INFRA_EXITS.has(r.code)) render = CANTRUN;
-  else render = FAIL;
 } else {
-  render = CANTRUN;
+  // Environment problems (no Docker, image/daemon error, timeout) arrive as a
+  // can't-run exit code and degrade to CANTRUN, not a misleading FAIL.
+  heading(process.platform === "linux" ? "render" : "render (via Docker)");
+  const r = run("node", ["scripts/render-test/render.mjs"]);
+  if (r.ok) render = PASS;
+  else if (r.launchError || RENDER_CANTRUN_EXITS.has(r.code)) render = CANTRUN;
+  else render = FAIL;
 }
 
 // --- summary -----------------------------------------------------------------

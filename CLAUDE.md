@@ -23,8 +23,8 @@ pnpm check              # all three checks: contracts + guards + render
                         # render runs bare on Linux, auto-dispatched to Docker on macOS
 pnpm check:contracts    # static three-file parity (options/schema/translations/template)
 pnpm check:guards       # runtime guard functions vs committed render goldens
-pnpm check:render       # real tempio+blocky render vs goldens; Linux only
-                        # (on macOS it refuses with a Docker hint — use `pnpm check`)
+pnpm check:render [fixture] # real tempio+blocky render vs goldens, optionally one fixture
+                        # bare on Linux, auto-dispatched to Docker on macOS
 pnpm check:release-notes # release tooling: preset/writer render real notes
                          # (not part of `pnpm check` — release tooling, not the pipeline)
 pnpm check:changelog    # release tooling: tests for the changelog gate (ADR-0010)
@@ -108,7 +108,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 Automated checks guard the translation pipeline — run all three with `pnpm check` (see Development Commands):
 
 - **Config contract** (`scripts/check-config-contract.mjs`) — static three-file parity: every top-level option exists in the schema and translations and is referenced by the template, every schema field (`<section>.<field>`) has a translation entry and vice versa, enum defaults are valid, and the deprecation registry holds (ADR-0005).
-- **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; on macOS `pnpm check` dispatches it into a throwaway Docker container.
+- **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; off Linux `pnpm check` and `pnpm check:render` dispatch it into a throwaway Docker container (`scripts/render-test/render.mjs`).
 - **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004), and the Probe module's functions against recorded API responses (ADR-0012).
 
 Separately, the **release-notes smoke test** (`scripts/check-release-notes.mjs`, `pnpm check:release-notes`, CI job `Release Notes`) renders synthetic commits through the real release-notes-generator + conventionalcommits preset, catching a preset major that outpaces the bundled writer (#272, #274). It guards release tooling, so it stays outside the `pnpm check` aggregate (ADR-0008 scope). The same holds for `pnpm check:changelog`, the tests of the changelog gate semantic-release runs at release (ADR-0010), which runs in the same CI job.
