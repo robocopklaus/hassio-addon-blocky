@@ -107,7 +107,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 
 Automated checks guard the translation pipeline — run all three with `pnpm check` (see Development Commands):
 
-- **Config contract** (`scripts/check-config-contract.mjs`) — static three-file parity: every top-level option exists in the schema and translations and is referenced by the template, enum defaults are valid, and the deprecation registry holds (ADR-0005).
+- **Config contract** (`scripts/check-config-contract.mjs`) — static three-file parity: every top-level option exists in the schema and translations and is referenced by the template, every schema field (`<section>.<field>`) has a translation entry and vice versa, enum defaults are valid, and the deprecation registry holds (ADR-0005).
 - **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; on macOS `pnpm check` dispatches it into a throwaway Docker container.
 - **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004), and the Probe module's functions against recorded API responses (ADR-0012).
 

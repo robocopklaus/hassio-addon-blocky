@@ -8,18 +8,23 @@ import {
   extractSectionScalarValues,
   extractTopLevelKeys,
 } from "./lib/config-walkers.mjs";
+import { translationFieldGaps } from "./lib/translation-fields.mjs";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 // The three config.yaml walkers are the load-bearing primitive of this checker,
-// so guard them before trusting anything they report. Running the pinning tests
+// so guard them (and the translation-field parity built on them) before trusting
+// anything they report. Running the pinning tests
 // here — rather than as a separate package/CI step — single-sources "contracts
 // includes the walker guard" across every caller of this script (the check:contracts
 // package script, the pnpm check aggregate, and the CI contracts job all invoke
 // `node scripts/check-config-contract.mjs` directly). Zero deps: node's built-in
 // test runner (ADR-0003). A failing walker test fails the contract check.
-const WALKER_TEST = path.join(path.dirname(fileURLToPath(import.meta.url)), "lib", "config-walkers.test.mjs");
-const walkerTests = spawnSync(process.execPath, ["--test", WALKER_TEST], {
+const LIB_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "lib");
+const LIB_TESTS = ["config-walkers.test.mjs", "translation-fields.test.mjs"].map((file) =>
+  path.join(LIB_DIR, file)
+);
+const walkerTests = spawnSync(process.execPath, ["--test", ...LIB_TESTS], {
   cwd: ROOT_DIR,
   stdio: "inherit",
 });
@@ -135,6 +140,23 @@ if (missingInTranslation.length > 0) {
 if (extraInTranslation.length > 0) {
   errors.push(
     `Top-level keys in translations/en.yaml but missing in options: ${extraInTranslation.join(", ")}`
+  );
+}
+
+// Field-level translation parity: unlike the template, both files are static
+// YAML, so every <section>.<field> in the schema must have a translation entry
+// and vice versa (see lib/translation-fields.mjs).
+const { untranslated, orphaned } = translationFieldGaps(configYaml, translationYaml);
+
+if (untranslated.length > 0) {
+  errors.push(
+    `Schema fields missing a translations/en.yaml entry under <section>.fields: ${untranslated.join(", ")}`
+  );
+}
+
+if (orphaned.length > 0) {
+  errors.push(
+    `Fields in translations/en.yaml that are not in the schema: ${orphaned.join(", ")}`
   );
 }
 
