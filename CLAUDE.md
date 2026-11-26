@@ -27,6 +27,7 @@ pnpm check:render       # real tempio+blocky render vs goldens; Linux only
                         # (on macOS it refuses with a Docker hint — use `pnpm check`)
 pnpm check:release-notes # release tooling: preset/writer render real notes
                          # (not part of `pnpm check` — release tooling, not the pipeline)
+pnpm check:changelog    # release tooling: tests for the changelog gate (ADR-0010)
 
 # Release (semantic-release via pnpm)
 pnpm release:dry-run    # preview what would be released
@@ -96,6 +97,7 @@ The template handles groups (upstreams, blocklists, clients), strategy enums, co
 - **Linting** (`.github/workflows/lint.yml`): Hadolint on `blocky/Dockerfile`, ShellCheck via `scripts/lint-shell.sh` (rootfs + `scripts/`) — runs on push/PR to main
 - **Release** (`.github/workflows/release.yml`): manual trigger (`workflow_dispatch`) → semantic-release → multi-arch Docker build (amd64, aarch64) → push to GHCR
 - **Versioning**: `scripts/update-addon-version.mjs` is called by semantic-release to stamp the version into `blocky/config.yaml`
+- **Changelog gate**: `blocky/CHANGELOG.md` is hand-curated (ADR-0010). semantic-release runs `scripts/changelog-release.mjs verify` before tagging, which aborts unless the top section is an undated `## [<computed version>]` with entries and every older section is dated. Its `stamp` step then dates the heading. Write entries under the concrete next-version heading and leave it undated
 - **Commits**: conventional commits (`feat:` → minor, `fix:` → patch, `feat(deps):` for Blocky updates, `fix(deps):` for Tempio)
 - **Dev Deploy** (`.github/workflows/deploy-dev.yml`): push to main touching `blocky/**` → syncs `blocky-dev/` with patched config → commits back to main with `[skip ci]`
 - **Renovate** (`renovate.json`): auto-updates Blocky, Tempio, base images, and semantic-release packages. Patches auto-merge; Blocky bumps require manual review — see `docs/agents/blocky-bump-review.md` for what that review is.
@@ -108,7 +110,7 @@ Automated checks guard the translation pipeline — run all three with `pnpm che
 - **Render harness** (`scripts/render-test/run.mjs`) — renders fixtures through the real pinned `tempio` + `blocky` and diffs against committed goldens, plus `blocky validate` per fixture (ADR-0003). Its binaries are Linux-only; on macOS `pnpm check` dispatches it into a throwaway Docker container.
 - **Guard test** (`scripts/test-guards.sh`) — runs the runtime guard functions against those same goldens (ADR-0004), and the Probe module's functions against recorded API responses (ADR-0012).
 
-Separately, the **release-notes smoke test** (`scripts/check-release-notes.mjs`, `pnpm check:release-notes`, CI job `Release Notes`) renders synthetic commits through the real release-notes-generator + conventionalcommits preset, catching a preset major that outpaces the bundled writer (#272, #274). It guards release tooling, so it stays outside the `pnpm check` aggregate (ADR-0008 scope).
+Separately, the **release-notes smoke test** (`scripts/check-release-notes.mjs`, `pnpm check:release-notes`, CI job `Release Notes`) renders synthetic commits through the real release-notes-generator + conventionalcommits preset, catching a preset major that outpaces the bundled writer (#272, #274). It guards release tooling, so it stays outside the `pnpm check` aggregate (ADR-0008 scope). The same holds for `pnpm check:changelog`, the tests of the changelog gate semantic-release runs at release (ADR-0010), which runs in the same CI job.
 
 `pnpm check` runs contracts + guards always and gates render on their success; it exits non-zero if render *cannot* run (e.g. Docker down off-Linux) so a green result never hides an unverified render. CI (`lint.yml`) runs the three as parallel jobs rather than the aggregate — see ADR-0008.
 

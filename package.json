@@ -12,6 +12,7 @@
     "check:guards": "bash scripts/test-guards.sh",
     "check:render": "node scripts/render-test/run.mjs",
     "check:release-notes": "node scripts/check-release-notes.mjs",
+    "check:changelog": "node --test scripts/changelog-release.test.mjs",
     "render:update": "node scripts/render-test/run.mjs --update",
     "lint:shell": "bash scripts/lint-shell.sh",
     "release": "semantic-release",

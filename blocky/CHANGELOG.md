@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Blocklists parse more entries correctly (upstream fix in Blocky 0.36.0): a list starting with a UTF-8 byte order mark no longer loses its first entry, and internationalized domain names written in hosts format (`0.0.0.0 münchen.example.de`), with uppercase letters, or as wildcards now match the way DNS clients query them. This applies to the denylists shipped by default too.
 - Database query logs (`query_log.type` `sqlite`, `mysql`, `postgresql`, `timescale`) no longer drop entries while the database is slow or briefly unreachable (upstream fix in Blocky 0.37.0). A database that can't be reached at startup is now retried in the background, instead of the log switching to the console until the next restart.
 
-## [5.3.0]
+## [5.3.0] - 2026-10-11
 
 ### Added
 

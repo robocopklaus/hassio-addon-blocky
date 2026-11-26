@@ -102,6 +102,11 @@ jobs:
       - name: Render release notes smoke test
         run: pnpm run check:release-notes
 
+      # The changelog gate semantic-release runs as verifyReleaseCmd/prepareCmd
+      # (ADR-0010). A bug here would only surface when a release is dispatched.
+      - name: Changelog release gate tests
+        run: pnpm run check:changelog
+
   hadolint:
     name: Hadolint
     runs-on: ubuntu-latest
