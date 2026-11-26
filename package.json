@@ -10,10 +10,10 @@
     "check": "node scripts/check.mjs",
     "check:contracts": "node scripts/check-config-contract.mjs",
     "check:guards": "bash scripts/test-guards.sh",
-    "check:render": "node scripts/render-test/run.mjs",
+    "check:render": "node scripts/render-test/render.mjs",
     "check:release-notes": "node scripts/check-release-notes.mjs",
     "check:changelog": "node --test scripts/changelog-release.test.mjs",
-    "render:update": "node scripts/render-test/run.mjs --update",
+    "render:update": "node scripts/render-test/render.mjs --update",
     "lint:shell": "bash scripts/lint-shell.sh",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
