@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [5.4.0]
 
+### Added
+
+- **Ignored Clients** for the query log (`query_log.ignore_clients`, new in Blocky 0.37.0): leave chosen clients out of the query log, by IP, CIDR range or client name (with `*` / `?` wildcards). Useful when a router's keep-alive queries flood the log. Their queries are still resolved, filtered and counted in metrics; only the logging stops (#396)
+
 ### Changed
 
 - Blocky upgraded from v0.35.0 to v0.37.0

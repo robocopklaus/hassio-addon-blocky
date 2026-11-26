@@ -498,6 +498,10 @@ configuration:
         name: Flush Interval
         description: >-
           How often to write buffered log entries to storage. Blocky batches log entries in memory and writes them in bulk for better performance. Format: duration string like 10s (10 seconds), 30s (30 seconds, default), 1m (1 minute). Lower values provide more real-time logging but increase I/O load. Higher values improve performance but risk losing recent logs on crash. Default: 30s.
+      ignore_clients:
+        name: Ignored Clients
+        description: >-
+          Clients whose queries are left out of the query log. Useful when a device floods the log, for example a home router that keeps sending keep-alive queries for big well-known domains. Each entry is a client IP (192.168.178.1), a CIDR range (192.168.178.64/28), or a client name, where names can use * and ? wildcards (*-ap) and match case-insensitively. This only stops logging: the queries are still resolved, filtered and counted in metrics. Blocky skips invalid entries with a warning. Has no effect while Log Type is blank or none. Default: empty (log all clients).
 
   log:
     name: Logging

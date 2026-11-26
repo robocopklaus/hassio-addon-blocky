@@ -1,0 +1,6 @@
+{
+  "query_log": {
+    "type": "",
+    "ignore_clients": ["192.168.178.1"]
+  }
+}
