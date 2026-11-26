@@ -62,7 +62,7 @@ Any companion commit (adaptation, changelog lines) lands on Renovate's branch, w
 
 ## Changelog and release
 
-A bump touches the user-facing changelog, but does not complete it. `blocky/CHANGELOG.md` is hand-curated and finalized manually at release (ADR-0010) — semantic-release stamps only `blocky/config.yaml`'s `version:`, never the changelog.
+A bump touches the user-facing changelog, but does not complete it. `blocky/CHANGELOG.md` is hand-curated and finalized manually at release (ADR-0010). The release writes no content: it only checks the section's structure and stamps the date.
 
 - Add the bump's lines under the **concrete next-version heading** (e.g. `## [5.1.0]`), never `[Unreleased]` — nothing renames it at release. The next version follows from the conventional commits already merged since the last tag (`feat(deps):` is a minor).
 - The upgrade line goes under `### Changed` ("Blocky upgraded from vX to vY"), and any behavioral note the classification produced (e.g. the ecs ordering note) rides with it — the changelog is the durable user-facing home for that note, not a PR comment.
@@ -70,7 +70,7 @@ A bump touches the user-facing changelog, but does not complete it. `blocky/CHAN
   - **Old end:** confirm the old behaviour in the previous pin's source (`gh api 'repos/0xERR0R/blocky/contents/<file>?ref=<old tag>' -q .content | base64 -d`), not in the PR's framing. 0.37.0's draft claimed Unicode list entries "now block"; 0.35.0 already converted plain ones.
   - **Add-on end:** translate upstream behaviour through the add-on's runtime: the defaults in `blocky/config.yaml`, port 4000 published on the host, and the Supervisor's 10 s stop timeout with s6's 3 s grace period. 0.37.0's draft promised Blocky's 10 s shutdown flush, which the add-on's stop sequence probably cuts short.
   - **Counts and scope:** take them from the advisory or PR text itself (0.37.0 has seven DNSSEC advisories, of which six affect released versions).
-- Assembling the full section (every user-facing change since the last tag) and setting the release date is a manual step at release-cut time, not part of the bump PR.
+- Assembling the full section (every user-facing change since the last tag) is a manual step at release-cut time, not part of the bump PR. Leave the heading undated: the release stamps the date, and its gate aborts if `## [V]` is missing, already dated, empty, or named differently from the computed version (ADR-0010).
 
 ## Worked example — Blocky 0.33.0 (PR #266)
 
