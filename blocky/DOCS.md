@@ -390,6 +390,8 @@ query_log:
 Access API at `http://[HOST]:4000/api/`
 
 > **Security warning:** Blocky's API is unauthenticated. Any host with network access to port 4000 can call control endpoints. Keep the API on trusted LAN segments only.
+>
+> In Standard Mode, Blocky's Go profiler endpoints (`/debug/pprof/*`) are turned off. In Custom Config Mode the `pprof.enable` setting lives in your own `config.yml`, and Blocky's default is on.
 
 | Endpoint | Method | Parameters | Description |
 |----------|--------|------------|-------------|

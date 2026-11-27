@@ -49,6 +49,10 @@ ports:
 http3:
   enable: true
 
+# Go Profiler
+pprof:
+  enable: false
+
 # Logging
 log:
   level: "info"
