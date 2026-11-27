@@ -13,6 +13,8 @@ A green render harness is **necessary but not sufficient**. It proves our render
    - **The HTTP API endpoints and response shapes the add-on consumes.** Derive them: `grep -rn '/api/' blocky/config.yaml blocky/rootfs`. `render-test` cannot see these: it validates rendered YAML, and no golden contains an API response, so an endpoint that is removed, renamed, or changes its response shape passes the gate of record silently. What the grep does not show is that the probe (ADR-0012) reads `/api/query`'s `responseType`/`returnCode` fields *and* its 5xx-on-chain-error behaviour.
    - **The CLI subcommands the image runs.** Derive them: `grep -rnE '(^|[ "\[])blocky"?,? ' blocky/Dockerfile blocky/rootfs`. Also invisible to `render-test`, which only exercises `validate`. An upstream change to *another* subcommand (0.35.0's `healthcheck` fix, for example) passes.
 
+   For the surfaces `render-test` cannot see, the scan has a live check: `scripts/bump-smoke.sh <old-tag> <new-tag>`, the **Bump smoke**. It runs both release binaries in a throwaway container against the defaults golden, the consumed API, the CLI and a dead resolver chain, and labels each failure with its disposition from this runbook. It needs Docker and internet access. Run it on every Blocky bump. It is evidence for this signal, never a third gate: the merge still waits on `render-test` alone.
+
 ## Classifying a changelog entry that touches a coupled surface
 
 ### Behavioral change (an exposed key behaves differently)
@@ -42,7 +44,7 @@ No table here — the axes above do not apply, because nothing about this is opt
 Split on what the change can do to the probe's *verdict*, because the two failure modes are not equally dangerous:
 
 - **A changed response shape, a renamed field, a new response type — note it, merge, re-pin the recordings.** The probe degrades to `inconclusive` by construction: an unrecognised shape is never mistaken for proof. The cost is a signal that goes quiet, which is the same position we were in before ADR-0012 and is not worth blocking a security-relevant Blocky bump over. Re-pin `scripts/test-guards.sh` in the same PR (ADR-0009) or, if that needs real work, file it and merge the bump.
-- **A change in how Blocky behaves when it cannot answer — Hold.** Whether a resolver-chain failure surfaces as a 5xx, as SERVFAIL, or as a held-open connection is what the probe *concludes from*, so a change here can make it warn on a healthy setup or stay silent through a real outage. That is the probe lying rather than going quiet, and it must be verified by hand before merge.
+- **A change in how Blocky behaves when it cannot answer — Hold.** Whether a resolver-chain failure surfaces as a 5xx, as SERVFAIL, or as a held-open connection is what the probe *concludes from*, so a change here can make it warn on a healthy setup or stay silent through a real outage. That is the probe lying rather than going quiet, and it must be verified before merge with `scripts/bump-smoke.sh <old-tag> <new-tag>`: its chain-failure step runs both binaries against unreachable upstreams and fails if the HTTP status or the probe's verdict differs, or if the new verdict is not `failed`.
 
 An endpoint that disappears entirely is the second kind: the watchdog URL in `blocky/config.yaml` would 404 and the Supervisor would restart the add-on in a loop. See ADR-0012.
 
@@ -56,7 +58,7 @@ A CLI subcommand we run that is renamed, removed, or changes its exit code is th
 
 ## Working on the Renovate PR
 
-Renovate regenerates the PR body on every rebase, so the scan's record — each classified entry and every deliberate non-exposition — goes in a **PR comment**, where it survives.
+Renovate regenerates the PR body on every rebase, so the scan's record — each classified entry, every deliberate non-exposition, and the Bump smoke's summary — goes in a **PR comment**, where it survives.
 
 Any companion commit (adaptation, changelog lines) lands on Renovate's branch, which may trail `main` by weeks. Merge `origin/main` into it first, then commit and push normally — never rebase or force-push a branch Renovate owns. After a foreign commit Renovate stops rebasing the PR, so it now merges on your schedule, not Renovate's.
 

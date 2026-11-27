@@ -29,6 +29,10 @@ pnpm check:release-notes # release tooling: preset/writer render real notes
                          # (not part of `pnpm check` — release tooling, not the pipeline)
 pnpm check:changelog    # release tooling: tests for the changelog gate (ADR-0010)
                         # (not part of `pnpm check` — release tooling, not the pipeline)
+scripts/bump-smoke.sh <old-tag> <new-tag>
+                        # Bump smoke for a Blocky bump review: live API, CLI, default lists,
+                        # chain failure old vs new (needs Docker + internet; manual only,
+                        # never in CI or `pnpm check`) — see docs/agents/blocky-bump-review.md
 
 # Release (semantic-release via pnpm)
 pnpm release:dry-run    # preview what would be released
