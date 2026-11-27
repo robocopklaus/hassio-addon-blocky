@@ -87,7 +87,7 @@ jobs:
     name: Build & Push Container
     runs-on: ubuntu-latest
     needs: semantic_release
-    if: needs.semantic_release.outputs.published == 'true' && inputs.dry_run != 'true' && inputs.rollback_version == ''
+    if: needs.semantic_release.outputs.published == 'true' && !inputs.dry_run && inputs.rollback_version == ''
     permissions:
       contents: read
       packages: write
@@ -272,7 +272,7 @@ jobs:
   rollback_latest:
     name: Rollback Latest Tags
     runs-on: ubuntu-latest
-    if: inputs.rollback_version != '' && inputs.dry_run != 'true'
+    if: inputs.rollback_version != '' && !inputs.dry_run
     permissions:
       contents: read
       packages: write
