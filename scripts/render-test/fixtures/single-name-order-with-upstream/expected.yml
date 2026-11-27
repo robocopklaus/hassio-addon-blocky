@@ -47,6 +47,10 @@ ports:
   http:
     - 4000 # Hardcoded since this is the internal Docker port
 
+# Go Profiler
+pprof:
+  enable: false
+
 # Logging
 log:
   level: "info"

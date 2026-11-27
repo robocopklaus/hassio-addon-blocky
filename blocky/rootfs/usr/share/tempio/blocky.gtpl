@@ -427,6 +427,14 @@ ports:
 http3:
   enable: true
 {{- end }}
+{{- /* Blocky serves Go's profiler (/debug/pprof) on the HTTP port unless told
+       otherwise, and that port is published to the host without authentication.
+       Nothing in Home Assistant uses it, so Standard Mode always turns it off,
+       with no option (ADR-0006); Custom Config Mode is the way to re-enable it. */}}
+
+# Go Profiler
+pprof:
+  enable: false
 
 # Logging
 log:
