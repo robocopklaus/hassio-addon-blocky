@@ -39,7 +39,7 @@ The committed `expected.yml` snapshot of a fixture's Rendered config. The byte-f
 _Avoid_: snapshot, expected output, baseline
 
 **Bump smoke**:
-A manual, networked run of the old and new Blocky release binaries against what the **Render harness** cannot see: the consumed API, the CLI the image runs, and the live default **Denylists**. It judges a resolver-chain failure with the **Probe**'s own verdict. Evidence for a bump review, never its gate.
+A manual, networked run of the old and new Blocky releases against what the **Render harness** cannot see: the consumed API, the CLI and the live default **Denylists**. It is evidence for a bump review's changelog scan, not its gate of record.
 _Avoid_: smoke test, live test, e2e test, integration test
 
 ### Config migration

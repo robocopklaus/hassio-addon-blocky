@@ -30,8 +30,9 @@
 # internet access.
 #
 # Exit status: 0 every check passed; 1 a check failed or old and new differ;
-# 2 the smoke could not run (no Docker, a download or checksum failure, Blocky
-# never came up), so a run that did not happen never reads as a pass.
+# 2 the smoke, or one of its checks, could not run (no Docker, a download or
+# checksum failure, Blocky never came up, a log format it no longer reads) and
+# nothing failed — so a check that did not happen never reads as a pass.
 # ==============================================================================
 set -euo pipefail
 
@@ -112,12 +113,19 @@ readonly BLOCKED_NAME="doubleclick.net"
 # The runbook's dispositions (docs/agents/blocky-bump-review.md), so the summary
 # says what each failure means for the merge, not just that it failed.
 readonly HOLD="Hold"
+# Only for /api/query: its response shapes are what test-guards.sh pins.
 readonly REPIN="Note + re-pin scripts/test-guards.sh"
+readonly NOTE="Note in the scan comment"
 readonly INVESTIGATE="Investigate before Go"
+
+# The level prefix Blocky's text log puts on every line. scan_log refuses to
+# call a log clean unless this matched at all, so a changed format cannot pass.
+readonly LOG_LEVEL_RE='^\[[^]]*\] +(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL|PANIC) '
 
 passes=()
 failures=()
 attention=()
+not_run=()
 blocky_pid=""
 
 pass() {
@@ -131,6 +139,12 @@ fail() {
 note_attention() {
     attention+=("$1")
     printf '  WARN  %s\n' "$1"
+}
+# A check that could not run is neither a pass nor a failure: it is listed, and
+# without a failure it makes the whole run exit could-not-run.
+not_checked() {
+    not_run+=("$1")
+    printf '  SKIP  %s\n' "$1"
 }
 
 stop_blocky() {
@@ -260,6 +274,10 @@ scan_log() {
     local log="${WORK}/defaults.log" line
     echo
     echo "== 1b. Log lines of the defaults run"
+    if ! grep -qE "${LOG_LEVEL_RE}" "${log}"; then
+        not_checked "log scan: no line of the defaults run carries Blocky's level prefix — has the log format changed?"
+        return 0
+    fi
     while IFS= read -r line; do
         fail "${INVESTIGATE}" "list parse error: ${line}"
     done < <(grep -F "parse error" "${log}" || true)
@@ -306,7 +324,7 @@ step_api() {
     if [ "${status}" != "200" ]; then
         fail "${HOLD}" "/api/blocking/status (the Supervisor watchdog) returned HTTP ${status}"
     elif [ "$(jq -r '(.enabled? | type)' <<<"${body}" 2>/dev/null)" != "boolean" ]; then
-        fail "${REPIN}" "/api/blocking/status has no boolean 'enabled': ${body}"
+        fail "${NOTE}" "/api/blocking/status has no boolean 'enabled': ${body}"
     else
         pass "/api/blocking/status: 200 ${body}"
     fi
@@ -419,13 +437,16 @@ summary() {
     local old="$1" new="$2" line
     echo
     echo "== Summary: bump smoke ${old} → ${new}"
-    echo "  ${#passes[@]} passed, ${#failures[@]} failed, ${#attention[@]} for attention"
+    echo "  ${#passes[@]} passed, ${#failures[@]} failed, ${#not_run[@]} not run, ${#attention[@]} for attention"
     for line in "${failures[@]}"; do echo "  FAIL  ${line}"; done
+    for line in "${not_run[@]}"; do echo "  SKIP  ${line}"; done
     for line in "${attention[@]}"; do echo "  WARN  ${line}"; done
-    if [ "${#failures[@]}" -eq 0 ]; then
-        echo "Result: PASS"
-    else
+    if [ "${#failures[@]}" -gt 0 ]; then
         echo "Result: FAIL — see the runbook (docs/agents/blocky-bump-review.md) for each disposition"
+    elif [ "${#not_run[@]}" -gt 0 ]; then
+        echo "Result: NOT RUN — nothing failed, but the checks above never ran"
+    else
+        echo "Result: PASS"
     fi
 }
 
@@ -452,11 +473,14 @@ container_main() {
         step_cli "${new_bin}"
         stop_blocky
         scan_log
+    else
+        not_checked "steps 2, 3 and 1b: Blocky was never started, because the defaults golden did not validate"
     fi
     step_chain_failure "${old}" "${old_bin}" "${new}" "${new_bin}"
 
     summary "${old}" "${new}"
     [ "${#failures[@]}" -eq 0 ] || exit "${EXIT_FAIL}"
+    [ "${#not_run[@]}" -eq 0 ] || exit "${EXIT_CANTRUN}"
 }
 
 if [ "${1:-}" = "--in-container" ]; then
